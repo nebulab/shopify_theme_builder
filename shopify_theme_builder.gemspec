@@ -5,19 +5,19 @@ require_relative "lib/shopify_theme_builder/version"
 Gem::Specification.new do |spec|
   spec.name = "shopify_theme_builder"
   spec.version = ShopifyThemeBuilder::VERSION
-  spec.authors = ["Massimiliano Lattanzio"]
+  spec.authors = ["Massimiliano Lattanzio", "Nebulab Team"]
   spec.email = ["massimiliano.lattanzio@gmail.com"]
 
-  spec.summary = "TODO: Write a short summary, because RubyGems requires one."
-  spec.description = "TODO: Write a longer description or delete this line."
-  spec.homepage = "TODO: Put your gem's website or public repo URL here."
+  spec.summary = "An opinionated builder for Shopify themes using nested folders, Tailwind CSS, and Stimulus."
+  spec.homepage = "https://github.com/nebulab/shopify_theme_builder?tab=readme-ov-file#readme"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.2.0"
 
-  spec.metadata["allowed_push_host"] = "TODO: Set to your gem server 'https://example.com'"
+  spec.metadata["allowed_push_host"] = "https://rubygems.org"
+  spec.metadata["bug_tracker_uri"] = "https://github.com/nebulab/shopify_theme_builder/issues"
   spec.metadata["homepage_uri"] = spec.homepage
-  spec.metadata["source_code_uri"] = "TODO: Put your gem's public repo URL here."
-  spec.metadata["changelog_uri"] = "TODO: Put your gem's CHANGELOG.md URL here."
+  spec.metadata["source_code_uri"] = "https://github.com/nebulab/shopify_theme_builder"
+  spec.metadata["changelog_uri"] = "https://github.com/nebulab/shopify_theme_toolkit/releases"
 
   # Specify which files should be added to the gem when it is released.
   # The `git ls-files -z` loads the files in the RubyGem that have been added into git.
