@@ -74,7 +74,7 @@ shopify_theme_builder/
 
 ### Release Process
 1. Run `bin/release <version>` (e.g., `bin/release 0.1.0`)
-2. This will create git commit updating version in `lib/shopify_theme_builder/version.rb`, create git tags and push to RubyGems
+2. This will create a git commit updating version in `lib/shopify_theme_builder/version.rb`, create git tags and push to RubyGems
 
 ## Context for AI Agents
 
