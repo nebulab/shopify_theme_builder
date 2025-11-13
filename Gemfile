@@ -5,10 +5,14 @@ source "https://rubygems.org"
 # Specify your gem's dependencies in shopify_theme_builder.gemspec
 gemspec
 
-gem "irb"
-gem "rake", "~> 13.0"
+group :development do
+  gem "irb"
+end
 
-gem "rspec", "~> 3.0"
+group :test, :development do
+  gem "rake", "~> 13.0"
+  gem "rspec", "~> 3.0"
+end
 
 group :lint do
   gem "rubocop", "~> 1.81", require: false
