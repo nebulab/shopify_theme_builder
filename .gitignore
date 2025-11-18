@@ -10,5 +10,11 @@ Gemfile.lock
 mise.toml
 .tools-version
 
+# builder folders
+_components/
+blocks/
+sections/
+snippets/
+
 # rspec failure tracking
 .rspec_status
