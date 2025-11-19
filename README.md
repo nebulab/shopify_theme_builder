@@ -10,7 +10,7 @@ An opinionated builder for Shopify themes using:
 Install the gem and add to the application's Gemfile by executing:
 
 ```bash
-bundle add shopify_theme_builder
+bundle add shopify_theme_builder --group "development"
 ```
 
 ## Usage
