@@ -17,7 +17,7 @@ Gem::Specification.new do |spec|
   spec.metadata["bug_tracker_uri"] = "https://github.com/nebulab/shopify_theme_builder/issues"
   spec.metadata["homepage_uri"] = spec.homepage
   spec.metadata["source_code_uri"] = "https://github.com/nebulab/shopify_theme_builder"
-  spec.metadata["changelog_uri"] = "https://github.com/nebulab/shopify_theme_toolkit/releases"
+  spec.metadata["changelog_uri"] = "https://github.com/nebulab/shopify_theme_builder/releases"
   spec.metadata["rubygems_mfa_required"] = "true"
 
   # Specify which files should be added to the gem when it is released.
