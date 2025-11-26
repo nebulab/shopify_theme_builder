@@ -1,4 +1,4 @@
-# !/usr/bin/env ruby
+#!/usr/bin/env ruby
 # frozen_string_literal: true
 
 # Picked and adapted from: https://github.com/nebulab/shopify_toolkit/commit/47dd903372d3fd3310082a8562db2e3508f3bc6d
