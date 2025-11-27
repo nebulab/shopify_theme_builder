@@ -1,5 +1,12 @@
 # ShopifyThemeBuilder
 
+![Gem Version](https://img.shields.io/gem/v/shopify_theme_builder?logo=rubygems)
+![GitHub branch check runs](https://img.shields.io/github/check-runs/nebulab/shopify_theme_builder/main?logo=github)
+![Codecov](https://img.shields.io/codecov/c/github/nebulab/shopify_theme_builder)
+![Libraries.io dependency status for latest release](https://img.shields.io/librariesio/release/rubygems/shopify_theme_builder)
+![Gem Total Downloads](https://img.shields.io/gem/dt/shopify_theme_builder)
+![GitHub License](https://img.shields.io/github/license/nebulab/shopify_theme_builder)
+
 ShopifyThemeBuilder is a Ruby gem that facilitates the development of Shopify themes by enabling the use of a components folder where you can organize your files and separate liquid, JSON, CSS, JavaScript, comment and doc into a dedicated file. It watches for changes in your component folder and automatically compiles all files into Shopify-compatible Liquid templates.
 
 ## What problem does it solve?
