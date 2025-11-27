@@ -12,6 +12,8 @@ end
 group :test, :development do
   gem "rake", "~> 13.0"
   gem "rspec", "~> 3.0"
+  gem "simplecov", "~> 0.21", require: false
+  gem "simplecov-cobertura", "~> 3.1", require: false
 end
 
 group :lint do
