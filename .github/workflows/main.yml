@@ -26,3 +26,9 @@ jobs:
           bundler-cache: true
       - name: Run the default task
         run: bundle exec rake
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          flags: ruby-${{ matrix.ruby }}
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
