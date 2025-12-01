@@ -35,4 +35,5 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency "filewatcher", "~> 2.1"
   spec.add_dependency "logger", "~> 1.7"
+  spec.add_dependency "tailwindcss-ruby", ">= 3.0", "< 5.0"
 end
