@@ -15,6 +15,7 @@ _components/
 blocks/
 sections/
 snippets/
+assets/
 
 # rspec failure tracking
 .rspec_status

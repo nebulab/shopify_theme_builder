@@ -10,12 +10,21 @@ require_relative "shopify_theme_builder/builder"
 # The main module for ShopifyThemeBuilder.
 module ShopifyThemeBuilder
   class << self
-    def watch(folders_to_watch: ["_components"])
+    def watch(
+      folders_to_watch: ["_components"],
+      tailwind_input_file: "./assets/tailwind.css",
+      tailwind_output_file: "./assets/tailwind-output.css",
+      skip_tailwind: false
+    )
       create_folders(folders_to_watch)
 
       initial_build(folders_to_watch)
 
-      watch_folders(folders_to_watch)
+      run_tailwind(tailwind_input_file, tailwind_output_file) unless skip_tailwind
+
+      watch_folders(folders_to_watch) do
+        run_tailwind(tailwind_input_file, tailwind_output_file) unless skip_tailwind
+      end
     end
 
     private
@@ -46,7 +55,15 @@ module ShopifyThemeBuilder
 
           Builder.new(files_to_process: [relative_filename]).build if relative_filename.start_with?(*folders_to_watch)
         end
+
+        yield if block_given?
       end
+    end
+
+    def run_tailwind(tailwind_input_file, tailwind_output_file)
+      puts "Running Tailwind CSS build..."
+
+      system("tailwindcss", "-i", tailwind_input_file, "-o", tailwind_output_file)
     end
   end
 end
