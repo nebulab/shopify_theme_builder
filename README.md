@@ -39,6 +39,9 @@ blocks/
 
 All files inside the `button` folder will be compiled into a single `button.liquid` file in the `blocks` folder, combining the comment, doc, Liquid, JSON, CSS, and JavaScript code.
 
+## Tailwind CSS Support
+
+ShopifyThemeBuilder also supports Tailwind CSS integration. You can specify an input CSS file that includes Tailwind directives and an output CSS file where the compiled styles will be saved. The watcher will automatically run the Tailwind build process whenever changes are detected in the components folder.
 
 ## Installation
 
@@ -53,27 +56,28 @@ bundle add shopify_theme_builder --group "development"
 To watch for changes in the default components folder and build the theme, run:
 
 ```bash
-bundle exec theme-watcher
+bundle exec theme-builder watch
 ```
 
-You can customize the components folder by passing options:
+You can customize multiple options when running the watcher:
+- `--folders`: Specify one or more folders to watch (default is `_components`).
+- `--tailwind-input-file`: Specify the Tailwind CSS input file (default is `src/styles/tailwind.css`).
+- `--tailwind-output-file`: Specify the Tailwind CSS output file (default is `assets/tailwind-output.css`).
+- `--skip-tailwind`: Skip the Tailwind CSS build process (default is `false`).
+
+If you need help with all available options, or how to set them, run:
 
 ```bash
-bundle exec theme-watcher my_components
+bundle exec theme-builder help watch
 ```
 
-If you prefer, you can import the watcher executable locally using:
+## After Running the Watcher
 
-```bash
-bundle binstubs shopify_theme_builder
+The watcher will create a CSS file that can be included in your Shopify theme layout in this way:
+
+```liquid
+{{ 'tailwind-output.css' | asset_url | stylesheet_tag }}
 ```
-
-It will create a `bin/theme-watcher` file that you can run with:
-
-```bash
-bin/theme-watcher
-```
-
 
 ## Development
 
@@ -81,10 +85,10 @@ After checking out the repo, run `bin/setup` to install dependencies. Then, run 
 
 To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, run `bin/release VERSION`, which will update the version file, create a git tag for the version, push git commits and the created tag, and push the `.gem` file to [rubygems.org](https://rubygems.org).
 
-## TODO
+## Next Steps
 
-- [ ] Run the tailwind build process automatically.
-- [ ] Check if stimulus controllers are loaded correctly in Shopify themes.
+- [x] Run the tailwind build process automatically.
+- [ ] Add Stimulus JS support.
 - [ ] Create a command to build an example component with all the files.
 - [ ] Decompile existing Shopify files into components structure (?).
 
