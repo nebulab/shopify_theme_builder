@@ -6,6 +6,7 @@ require_relative "shopify_theme_builder/version"
 require_relative "shopify_theme_builder/watcher"
 require_relative "shopify_theme_builder/liquid_processor"
 require_relative "shopify_theme_builder/builder"
+require_relative "shopify_theme_builder/command_line"
 
 # The main module for ShopifyThemeBuilder.
 module ShopifyThemeBuilder
