@@ -11,6 +11,7 @@ RSpec.describe ShopifyThemeBuilder do
       allow(ShopifyThemeBuilder::Builder).to receive(:new).and_return(double(build: nil))
       allow(ShopifyThemeBuilder::Watcher).to receive(:new).and_return(double(watch: nil))
       allow(Dir).to receive_messages(pwd: "/path/to/project", glob: ["_components/button/block.liquid"])
+      allow(described_class).to receive(:system)
     end
 
     it "outputs creating folders message" do
@@ -32,6 +33,26 @@ RSpec.describe ShopifyThemeBuilder do
 
       expect(ShopifyThemeBuilder::Builder).to have_received(:new)
         .with(files_to_process: ["_components/button/block.liquid"])
+    end
+
+    it "runs Tailwind CSS build" do
+      expect { described_class.watch }.to output(/Running Tailwind CSS build/).to_stdout
+    end
+
+    it "calls system to run Tailwind CSS" do
+      described_class.watch
+
+      expect(described_class).to have_received(:system)
+        .with("tailwindcss", "-i", "./assets/tailwind.css", "-o", "./assets/tailwind-output.css")
+    end
+
+    it "calls Tailwind CSS build using the specified input and output files" do
+      described_class.watch(
+        tailwind_input_file: "input.css",
+        tailwind_output_file: "output.css"
+      )
+
+      expect(described_class).to have_received(:system).with("tailwindcss", "-i", "input.css", "-o", "output.css")
     end
 
     it "outputs watching message" do
@@ -70,6 +91,22 @@ RSpec.describe ShopifyThemeBuilder do
 
         expect(ShopifyThemeBuilder::Builder).to have_received(:new)
           .with(files_to_process: ["_components/button/schema.json"])
+      end
+
+      it "runs Tailwind CSS build after processing changes" do
+        described_class.watch
+
+        expect(described_class).to have_received(:system)
+          .with("tailwindcss", "-i", "./assets/tailwind.css", "-o", "./assets/tailwind-output.css").twice
+      end
+    end
+
+    context "when skip_tailwind is true" do
+      it "does not run Tailwind CSS build" do
+        described_class.watch(skip_tailwind: true)
+
+        expect(described_class).not_to have_received(:system)
+          .with("tailwindcss", "-i", "./assets/tailwind.css", "-o", "./assets/tailwind-output.css")
       end
     end
 
