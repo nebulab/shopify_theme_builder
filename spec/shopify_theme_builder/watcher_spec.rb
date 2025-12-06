@@ -204,6 +204,16 @@ RSpec.describe ShopifyThemeBuilder::Watcher do
           end
         end
       end
+
+      context "when skip_tailwind is true" do
+        let(:watcher) { described_class.new(skip_tailwind: true) }
+
+        it "does not create the tailwind input file" do
+          watcher.watch
+
+          expect(File).not_to have_received(:write)
+        end
+      end
     end
   end
 end

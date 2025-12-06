@@ -73,7 +73,7 @@ module ShopifyThemeBuilder
     end
 
     def create_tailwind_file
-      return if File.exist?(@tailwind_input_file)
+      return if @skip_tailwind || File.exist?(@tailwind_input_file)
 
       puts "Creating default Tailwind CSS input file at '#{@tailwind_input_file}'..."
 
