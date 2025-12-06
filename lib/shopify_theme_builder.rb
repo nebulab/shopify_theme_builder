@@ -4,7 +4,7 @@ require "fileutils"
 require "logger"
 require "tailwindcss/ruby"
 require_relative "shopify_theme_builder/version"
-require_relative "shopify_theme_builder/watcher"
+require_relative "shopify_theme_builder/filewatcher"
 require_relative "shopify_theme_builder/liquid_processor"
 require_relative "shopify_theme_builder/builder"
 require_relative "shopify_theme_builder/command_line"
@@ -53,7 +53,7 @@ module ShopifyThemeBuilder
     def watch_folders(folders_to_watch)
       puts "Watching for changes in '#{folders_to_watch.join(", ")}' folders..."
 
-      Watcher.new(folders_to_watch).watch do |changes|
+      Filewatcher.new(folders_to_watch).watch do |changes|
         changes.each_key do |filename|
           relative_filename = filename.gsub("#{Dir.pwd}/", "")
 

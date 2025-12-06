@@ -3,13 +3,12 @@
 require "filewatcher"
 
 module ShopifyThemeBuilder
-  # Watcher class for ShopifyThemeBuilder.
   # It wraps the Filewatcher functionality to monitor file changes.
   # It delegates method calls to the underlying Filewatcher instance.
   # Check: https://github.com/filewatcher/filewatcher
-  class Watcher
+  class Filewatcher
     def initialize(...)
-      @filewatcher = Filewatcher.new(...)
+      @filewatcher = ::Filewatcher.new(...)
     end
 
     def method_missing(name, ...)

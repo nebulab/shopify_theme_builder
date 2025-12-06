@@ -9,7 +9,7 @@ RSpec.describe ShopifyThemeBuilder do
     before do
       allow(FileUtils).to receive(:mkdir_p)
       allow(ShopifyThemeBuilder::Builder).to receive(:new).and_return(double(build: nil))
-      allow(ShopifyThemeBuilder::Watcher).to receive(:new).and_return(double(watch: nil))
+      allow(ShopifyThemeBuilder::Filewatcher).to receive(:new).and_return(double(watch: nil))
       allow(Dir).to receive_messages(pwd: "/path/to/project", glob: ["_components/button/block.liquid"])
       allow(described_class).to receive(:system)
       allow(File).to receive(:exist?).and_return(true)
@@ -63,12 +63,12 @@ RSpec.describe ShopifyThemeBuilder do
     it "starts watching for file changes" do
       described_class.watch
 
-      expect(ShopifyThemeBuilder::Watcher).to have_received(:new).with(["_components"])
+      expect(ShopifyThemeBuilder::Filewatcher).to have_received(:new).with(["_components"])
     end
 
     it "sets up a watch block to handle file changes" do
       spy = double(watch: nil)
-      allow(ShopifyThemeBuilder::Watcher).to receive(:new).and_return(spy)
+      allow(ShopifyThemeBuilder::Filewatcher).to receive(:new).and_return(spy)
 
       described_class.watch
 
@@ -78,7 +78,7 @@ RSpec.describe ShopifyThemeBuilder do
     context "when files change in components folder" do
       before do
         spy = double(watch: nil)
-        allow(ShopifyThemeBuilder::Watcher).to receive(:new).and_return(spy)
+        allow(ShopifyThemeBuilder::Filewatcher).to receive(:new).and_return(spy)
         allow(spy).to receive(:watch) do |&block|
           changes = {
             "/path/to/project/_components/button/schema.json" => :created
@@ -114,7 +114,7 @@ RSpec.describe ShopifyThemeBuilder do
     context "when files outside components folder change" do
       before do
         spy = double(watch: nil)
-        allow(ShopifyThemeBuilder::Watcher).to receive(:new).and_return(spy)
+        allow(ShopifyThemeBuilder::Filewatcher).to receive(:new).and_return(spy)
         allow(spy).to receive(:watch) do |&block|
           changes = {
             "/path/to/project/_non_components_folder/button/block.liquid" => :updated

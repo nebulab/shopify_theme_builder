@@ -2,7 +2,7 @@
 
 require "spec_helper"
 
-RSpec.describe ShopifyThemeBuilder::Watcher do
+RSpec.describe ShopifyThemeBuilder::Filewatcher do
   describe "#initialize" do
     it "sets default values" do
       watcher = described_class.new(["_folder_to_watch"])
