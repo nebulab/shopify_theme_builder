@@ -26,10 +26,10 @@ module ShopifyThemeBuilder
 
       create_tailwind_file
 
-      run_tailwind unless @skip_tailwind
+      run_tailwind
 
       watch_folders do
-        run_tailwind unless @skip_tailwind
+        run_tailwind
       end
     end
 
@@ -67,6 +67,8 @@ module ShopifyThemeBuilder
     end
 
     def run_tailwind
+      return if @skip_tailwind
+
       puts "Running Tailwind CSS build..."
 
       system("tailwindcss", "-i", @tailwind_input_file, "-o", @tailwind_output_file)
