@@ -1,27 +1,96 @@
 # frozen_string_literal: true
 
-require "filewatcher"
+require "fileutils"
+require "tailwindcss/ruby"
 
 module ShopifyThemeBuilder
-  # Watcher class for ShopifyThemeBuilder.
-  # It wraps the Filewatcher functionality to monitor file changes.
-  # It delegates method calls to the underlying Filewatcher instance.
-  # Check: https://github.com/filewatcher/filewatcher
+  # Watcher is responsible for monitoring specified folders for changes
+  # and triggering the build process for Shopify theme components.
   class Watcher
-    def initialize(...)
-      @filewatcher = Filewatcher.new(...)
+    def initialize(
+      folders_to_watch: ["_components"],
+      tailwind_input_file: "./assets/tailwind.css",
+      tailwind_output_file: "./assets/tailwind-output.css",
+      skip_tailwind: false
+    )
+      @folders_to_watch = folders_to_watch
+      @tailwind_input_file = tailwind_input_file
+      @tailwind_output_file = tailwind_output_file
+      @skip_tailwind = skip_tailwind
     end
 
-    def method_missing(name, ...)
-      if @filewatcher.respond_to?(name)
-        @filewatcher.send(name, ...)
-      else
-        super
+    def watch
+      create_folders
+
+      initial_build
+
+      create_tailwind_file
+
+      run_tailwind
+
+      watch_folders
+    end
+
+    private
+
+    def create_folders
+      puts "Creating necessary folders..."
+
+      FileUtils.mkdir_p(@folders_to_watch)
+      FileUtils.mkdir_p("sections")
+      FileUtils.mkdir_p("blocks")
+      FileUtils.mkdir_p("snippets")
+    end
+
+    def initial_build
+      puts "Doing an initial build..."
+
+      @folders_to_watch.each do |folder|
+        Builder.new(files_to_process: Dir.glob("#{folder}/**/*.*")).build
       end
     end
 
-    def respond_to_missing?(name, include_private)
-      @filewatcher.respond_to?(name) || super
+    def watch_folders
+      puts "Watching for changes in '#{@folders_to_watch.join(", ")}' folders..."
+
+      Filewatcher.new(@folders_to_watch).watch do |changes|
+        changes.each_key do |filename|
+          relative_filename = filename.gsub("#{Dir.pwd}/", "")
+
+          Builder.new(files_to_process: [relative_filename]).build if relative_filename.start_with?(*@folders_to_watch)
+        end
+
+        run_tailwind
+      end
+    end
+
+    def run_tailwind
+      return if @skip_tailwind
+
+      puts "Running Tailwind CSS build..."
+
+      system("tailwindcss", "-i", @tailwind_input_file, "-o", @tailwind_output_file)
+    end
+
+    def create_tailwind_file
+      return if @skip_tailwind || File.exist?(@tailwind_input_file)
+
+      puts "Creating default Tailwind CSS input file at '#{@tailwind_input_file}'..."
+
+      FileUtils.mkdir_p(File.dirname(@tailwind_input_file))
+      File.write @tailwind_input_file, tailwind_base_config
+    end
+
+    def tailwind_base_config
+      return '@import "tailwindcss";' if Gem::Version.new(Tailwindcss::Ruby::VERSION) >= Gem::Version.new("4.0.0")
+
+      system("tailwindcss", "init") unless File.exist?("tailwind.config.js")
+
+      <<~TAILWIND.strip
+        @tailwind base;
+        @tailwind components;
+        @tailwind utilities;
+      TAILWIND
     end
   end
 end

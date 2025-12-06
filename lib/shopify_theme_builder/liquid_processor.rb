@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "logger"
+
 module ShopifyThemeBuilder
   # LiquidProcessor is responsible for processing Liquid files
   # by combining various related files (Liquid, schema, CSS, JS, doc, comment)
