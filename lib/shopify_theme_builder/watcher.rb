@@ -28,9 +28,7 @@ module ShopifyThemeBuilder
 
       run_tailwind
 
-      watch_folders do
-        run_tailwind
-      end
+      watch_folders
     end
 
     private
@@ -62,7 +60,7 @@ module ShopifyThemeBuilder
           Builder.new(files_to_process: [relative_filename]).build if relative_filename.start_with?(*@folders_to_watch)
         end
 
-        yield if block_given?
+        run_tailwind
       end
     end
 
