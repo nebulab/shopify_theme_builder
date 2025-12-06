@@ -12,3 +12,12 @@ Style/StringLiterals:
 
 Style/StringLiteralsInInterpolation:
   EnforcedStyle: double_quotes
+
+RSpec/ExampleLength:
+  Max: 20
+
+Metrics/ParameterLists:
+  Max: 6
+
+RSpec/NestedGroups:
+  Max: 5
