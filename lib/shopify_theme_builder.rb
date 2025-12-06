@@ -1,8 +1,5 @@
 # frozen_string_literal: true
 
-require "fileutils"
-require "logger"
-require "tailwindcss/ruby"
 require_relative "shopify_theme_builder/version"
 require_relative "shopify_theme_builder/filewatcher"
 require_relative "shopify_theme_builder/liquid_processor"

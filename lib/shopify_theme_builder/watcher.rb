@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+require "fileutils"
+require "tailwindcss/ruby"
+
 module ShopifyThemeBuilder
   # Watcher is responsible for monitoring specified folders for changes
   # and triggering the build process for Shopify theme components.
