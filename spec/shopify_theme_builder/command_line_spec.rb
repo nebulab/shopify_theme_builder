@@ -8,6 +8,7 @@ RSpec.describe ShopifyThemeBuilder::CommandLine do
     let(:default_tailwind_input) { "./assets/tailwind.css" }
     let(:default_tailwind_output) { "./assets/tailwind-output.css" }
     let(:skip_tailwind) { false }
+    let(:default_stimulus_output) { "./assets/controllers.js" }
 
     before do
       allow(ShopifyThemeBuilder).to receive(:watch)
@@ -21,7 +22,8 @@ RSpec.describe ShopifyThemeBuilder::CommandLine do
           folders_to_watch: default_folders,
           tailwind_input_file: default_tailwind_input,
           tailwind_output_file: default_tailwind_output,
-          skip_tailwind: skip_tailwind
+          skip_tailwind: skip_tailwind,
+          stimulus_output_file: default_stimulus_output
         )
       end
     end
@@ -36,7 +38,8 @@ RSpec.describe ShopifyThemeBuilder::CommandLine do
           folders_to_watch: custom_folders,
           tailwind_input_file: default_tailwind_input,
           tailwind_output_file: default_tailwind_output,
-          skip_tailwind: skip_tailwind
+          skip_tailwind: skip_tailwind,
+          stimulus_output_file: default_stimulus_output
         )
       end
     end
@@ -51,7 +54,8 @@ RSpec.describe ShopifyThemeBuilder::CommandLine do
           folders_to_watch: default_folders,
           tailwind_input_file: custom_input_file,
           tailwind_output_file: default_tailwind_output,
-          skip_tailwind: skip_tailwind
+          skip_tailwind: skip_tailwind,
+          stimulus_output_file: default_stimulus_output
         )
       end
     end
@@ -66,7 +70,8 @@ RSpec.describe ShopifyThemeBuilder::CommandLine do
           folders_to_watch: default_folders,
           tailwind_input_file: default_tailwind_input,
           tailwind_output_file: custom_output_file,
-          skip_tailwind: skip_tailwind
+          skip_tailwind: skip_tailwind,
+          stimulus_output_file: default_stimulus_output
         )
       end
     end
@@ -79,7 +84,24 @@ RSpec.describe ShopifyThemeBuilder::CommandLine do
           folders_to_watch: default_folders,
           tailwind_input_file: default_tailwind_input,
           tailwind_output_file: default_tailwind_output,
-          skip_tailwind: true
+          skip_tailwind: true,
+          stimulus_output_file: default_stimulus_output
+        )
+      end
+    end
+
+    context "when called with custom stimulus_output_file option" do
+      it "passes the custom stimulus output file to ShopifyThemeBuilder.watch" do
+        custom_stimulus_output = "./dist/controllers.js"
+
+        described_class.start(["watch", "--stimulus-output-file", custom_stimulus_output])
+
+        expect(ShopifyThemeBuilder).to have_received(:watch).with(
+          folders_to_watch: default_folders,
+          tailwind_input_file: default_tailwind_input,
+          tailwind_output_file: default_tailwind_output,
+          skip_tailwind: skip_tailwind,
+          stimulus_output_file: custom_stimulus_output
         )
       end
     end
@@ -90,20 +112,23 @@ RSpec.describe ShopifyThemeBuilder::CommandLine do
         custom_input_file = "./src/tailwind.css"
         custom_output_file = "./dist/tailwind.css"
         custom_skip_tailwind = true
+        custom_stimulus_output = "./dist/controllers.js"
 
         described_class.start([
                                 "watch",
                                 "--folders", "src/components",
                                 "--tailwind-input-file", custom_input_file,
                                 "--tailwind-output-file", custom_output_file,
-                                "--skip-tailwind", custom_skip_tailwind
+                                "--skip-tailwind", custom_skip_tailwind,
+                                "--stimulus-output-file", custom_stimulus_output
                               ])
 
         expect(ShopifyThemeBuilder).to have_received(:watch).with(
           folders_to_watch: custom_folders,
           tailwind_input_file: custom_input_file,
           tailwind_output_file: custom_output_file,
-          skip_tailwind: custom_skip_tailwind
+          skip_tailwind: custom_skip_tailwind,
+          stimulus_output_file: custom_stimulus_output
         )
       end
     end
