@@ -9,9 +9,7 @@ require_relative "shopify_theme_builder/watcher"
 
 # The main module for ShopifyThemeBuilder.
 module ShopifyThemeBuilder
-  class << self
-    def watch(...)
-      Watcher.new(...).watch
-    end
+  def self.watch(...)
+    Watcher.new(...).watch
   end
 end
