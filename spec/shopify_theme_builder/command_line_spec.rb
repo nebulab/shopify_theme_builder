@@ -2,7 +2,6 @@
 
 require "spec_helper"
 
-# rubocop:disable RSpec/ExampleLength
 RSpec.describe ShopifyThemeBuilder::CommandLine do
   describe "#watch" do
     let(:default_folders) { ["_components"] }
@@ -110,4 +109,3 @@ RSpec.describe ShopifyThemeBuilder::CommandLine do
     end
   end
 end
-# rubocop:enable RSpec/ExampleLength

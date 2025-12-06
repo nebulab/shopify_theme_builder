@@ -88,7 +88,6 @@ Probably because the file is directly under the components folder.")
       end
     end
 
-    # rubocop:disable Metrics/ParameterLists
     shared_examples "the liquid processor" do |
       comment_content,
       doc_content,
@@ -142,7 +141,6 @@ Compiled from #{file}\n\
         expect(File).to have_received(:write).with("#{file_type}s/#{folder_arr.join("--")}.liquid", expected_content)
       end
     end
-    # rubocop:enable Metrics/ParameterLists
 
     context "with a complete component (section with all files)" do
       it_behaves_like "the liquid processor",
