@@ -2,6 +2,7 @@
 
 require "fileutils"
 require "logger"
+require "tailwindcss/ruby"
 require_relative "shopify_theme_builder/version"
 require_relative "shopify_theme_builder/watcher"
 require_relative "shopify_theme_builder/liquid_processor"
@@ -20,6 +21,8 @@ module ShopifyThemeBuilder
       create_folders(folders_to_watch)
 
       initial_build(folders_to_watch)
+
+      create_tailwind_file(tailwind_input_file)
 
       run_tailwind(tailwind_input_file, tailwind_output_file) unless skip_tailwind
 
@@ -65,6 +68,27 @@ module ShopifyThemeBuilder
       puts "Running Tailwind CSS build..."
 
       system("tailwindcss", "-i", tailwind_input_file, "-o", tailwind_output_file)
+    end
+
+    def create_tailwind_file(tailwind_input_file)
+      return if File.exist?(tailwind_input_file)
+
+      puts "Creating default Tailwind CSS input file at '#{tailwind_input_file}'..."
+
+      FileUtils.mkdir_p(File.dirname(tailwind_input_file))
+      File.write tailwind_input_file, tailwind_base_config
+    end
+
+    def tailwind_base_config
+      return '@import "tailwindcss";' if Gem::Version.new(Tailwindcss::Ruby::VERSION) >= Gem::Version.new("4.0.0")
+
+      system("tailwindcss", "init") unless File.exist?("tailwind.config.js")
+
+      <<~TAILWIND.strip
+        @tailwind base;
+        @tailwind components;
+        @tailwind utilities;
+      TAILWIND
     end
   end
 end

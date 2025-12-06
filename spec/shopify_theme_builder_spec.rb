@@ -12,6 +12,7 @@ RSpec.describe ShopifyThemeBuilder do
       allow(ShopifyThemeBuilder::Watcher).to receive(:new).and_return(double(watch: nil))
       allow(Dir).to receive_messages(pwd: "/path/to/project", glob: ["_components/button/block.liquid"])
       allow(described_class).to receive(:system)
+      allow(File).to receive(:exist?).and_return(true)
     end
 
     it "outputs creating folders message" do
@@ -127,6 +128,73 @@ RSpec.describe ShopifyThemeBuilder do
 
         expect(ShopifyThemeBuilder::Builder).not_to have_received(:new)
           .with(files_to_process: ["_non_components_folder/button/block.liquid"])
+      end
+    end
+
+    context "when tailwind input file does not exist" do
+      before do
+        allow(File).to receive(:exist?).and_return(false)
+        allow(File).to receive(:write)
+        stub_const("Tailwindcss::Ruby::VERSION", "4.1.17")
+      end
+
+      it "creates the tailwind input file" do
+        expect { described_class.watch }.to output(/Creating default Tailwind CSS input file/).to_stdout
+      end
+
+      it "creates necessary directories for the tailwind input file" do
+        described_class.watch
+
+        expect(FileUtils).to have_received(:mkdir_p).with(File.dirname("./assets/tailwind.css"))
+      end
+
+      it "writes the correct base config to the tailwind input file for version >= 4.0.0" do
+        described_class.watch
+
+        expect(File).to have_received(:write).with(
+          "./assets/tailwind.css",
+          '@import "tailwindcss";'
+        )
+      end
+
+      it "does not initialize tailwind.config.js if it does not exist" do
+        described_class.watch
+
+        expect(described_class).not_to have_received(:system).with("tailwindcss", "init")
+      end
+
+      context "when tailwindcss-ruby version is less than 4.0.0" do
+        before do
+          stub_const("Tailwindcss::Ruby::VERSION", "3.3.2")
+        end
+
+        it "writes the correct base config to the tailwind input file for version < 4.0.0" do
+          described_class.watch
+
+          expect(File).to have_received(:write).with(
+            "./assets/tailwind.css",
+            "@tailwind base;\n@tailwind components;\n@tailwind utilities;"
+          )
+        end
+
+        it "initializes tailwind.config.js if it does not exist" do
+          described_class.watch
+
+          expect(described_class).to have_received(:system).with("tailwindcss", "init")
+        end
+
+        context "when tailwind.config.js already exists" do
+          before do
+            allow(File).to receive(:exist?).with("./assets/tailwind.css").and_return(false)
+            allow(File).to receive(:exist?).with("tailwind.config.js").and_return(true)
+          end
+
+          it "does not initialize tailwind.config.js" do
+            described_class.watch
+
+            expect(described_class).not_to have_received(:system).with("tailwindcss", "init")
+          end
+        end
       end
     end
   end
