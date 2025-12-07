@@ -10,7 +10,9 @@ RSpec.describe ShopifyThemeBuilder::Watcher do
       allow(FileUtils).to receive(:mkdir_p)
       allow(ShopifyThemeBuilder::Builder).to receive(:new).and_return(double(build: nil))
       allow(ShopifyThemeBuilder::Filewatcher).to receive(:new).and_return(double(watch: nil))
-      allow(Dir).to receive_messages(pwd: "/path/to/project", glob: ["_components/button/block.liquid"])
+      allow(Dir).to receive(:pwd).and_return("/path/to/project")
+      allow(Dir).to receive(:glob).with("_components/**/*.*").and_return(["_components/button/block.liquid"])
+      allow(Dir).to receive(:glob).with("_components/**/controller.js").and_return([])
       allow(File).to receive(:exist?).and_return(true)
       allow(watcher).to receive(:system)
     end
@@ -62,6 +64,12 @@ RSpec.describe ShopifyThemeBuilder::Watcher do
       end
     end
 
+    it "runs Stimulus build" do
+      watcher.watch
+
+      expect(Dir).to have_received(:glob).with("_components/**/controller.js").once
+    end
+
     it "outputs watching message" do
       expect { watcher.watch }.to output(/Watching for changes in '_components' folder/).to_stdout
     end
@@ -106,6 +114,25 @@ RSpec.describe ShopifyThemeBuilder::Watcher do
         expect(watcher).to have_received(:system)
           .with("tailwindcss", "-i", "./assets/tailwind.css", "-o", "./assets/tailwind-output.css").twice
       end
+
+      context "when a controller.js file changes" do
+        before do
+          spy = double(watch: nil)
+          allow(ShopifyThemeBuilder::Filewatcher).to receive(:new).and_return(spy)
+          allow(spy).to receive(:watch) do |&block|
+            changes = {
+              "/path/to/project/_components/button/controller.js" => :updated
+            }
+            block&.call(changes)
+          end
+        end
+
+        it "runs Stimulus build after processing changes" do
+          watcher.watch
+
+          expect(Dir).to have_received(:glob).with("_components/**/controller.js").twice
+        end
+      end
     end
 
     context "when skip_tailwind is true" do
@@ -116,6 +143,110 @@ RSpec.describe ShopifyThemeBuilder::Watcher do
 
         expect(watcher).not_to have_received(:system)
           .with("tailwindcss", "-i", "./assets/tailwind.css", "-o", "./assets/tailwind-output.css")
+      end
+    end
+
+    context "when controllers files are present" do
+      before do
+        allow(Dir).to receive(:glob).with("_components/**/controller.js").and_return(
+          ["_components/button/controller.js"]
+        )
+        allow(File).to receive(:read).and_return("// controller content")
+        allow(File).to receive(:write)
+      end
+
+      it "outputs building Stimulus controllers message" do
+        expect { watcher.watch }.to output(/Building Stimulus controllers/).to_stdout
+      end
+
+      it "creates the folders for the Stimulus output file" do
+        watcher.watch
+
+        expect(FileUtils).to have_received(:mkdir_p).with(File.dirname("./assets/controllers.js"))
+      end
+
+      it "writes the combined Stimulus controllers to the output file" do
+        watcher.watch
+
+        expect(File).to have_received(:write).with(
+          "./assets/controllers.js",
+          "import { Application, Controller } from \"https://unpkg.com/@hotwired/stimulus/dist/stimulus.js\"\n\
+window.Stimulus = Application.start()\n\n\
+// controller content"
+        )
+      end
+
+      context "when custom stimulus output file is provided" do
+        let(:watcher) do
+          described_class.new(
+            stimulus_output_file: "custom/controllers.js"
+          )
+        end
+
+        it "writes the combined Stimulus controllers to the specified output file" do
+          watcher.watch
+
+          expect(File).to have_received(:write).with(
+            "custom/controllers.js",
+            "import { Application, Controller } from \"https://unpkg.com/@hotwired/stimulus/dist/stimulus.js\"\n\
+window.Stimulus = Application.start()\n\n\
+// controller content"
+          )
+        end
+      end
+
+      context "when multiple controller files are present" do
+        before do
+          allow(Dir).to receive(:glob).with("_components/**/controller.js").and_return(
+            [
+              "_components/button/controller.js",
+              "_components/modal/controller.js"
+            ]
+          )
+          allow(File).to receive(:read).with("_components/button/controller.js").and_return(
+            "// button controller content\n"
+          )
+          allow(File).to receive(:read).with("_components/modal/controller.js").and_return(
+            "// modal controller content"
+          )
+        end
+
+        it "combines all controller files into the output file" do
+          watcher.watch
+
+          expect(File).to have_received(:write).with(
+            "./assets/controllers.js",
+            "import { Application, Controller } from \"https://unpkg.com/@hotwired/stimulus/dist/stimulus.js\"\n\
+window.Stimulus = Application.start()\n\n\
+// button controller content\n\n\
+// modal controller content"
+          )
+        end
+      end
+
+      context "when multiple folders are watched with controllers" do
+        let(:watcher) do
+          described_class.new(folders_to_watch: %w[_components _custom])
+        end
+
+        before do
+          allow(Dir).to receive(:glob).with("_custom/**/*.*")
+          allow(Dir).to receive(:glob).with("_components/**/controller.js")
+                                      .and_return(["_components/button/controller.js"])
+          allow(Dir).to receive(:glob).with("_custom/**/controller.js").and_return(["_custom/widget/controller.js"])
+        end
+
+        it "combines controllers from _components watched folders" do
+          watcher.watch
+
+          expect(Dir).to have_received(:glob).with("_components/**/controller.js")
+        end
+
+        it "combines controllers from _custom watched folders" do
+          watcher.watch
+
+          expect(Dir).to have_received(:glob).with("_custom/**/controller.js")
+        end
       end
     end
 

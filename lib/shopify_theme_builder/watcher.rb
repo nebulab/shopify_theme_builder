@@ -11,12 +11,14 @@ module ShopifyThemeBuilder
       folders_to_watch: ["_components"],
       tailwind_input_file: "./assets/tailwind.css",
       tailwind_output_file: "./assets/tailwind-output.css",
-      skip_tailwind: false
+      skip_tailwind: false,
+      stimulus_output_file: "./assets/controllers.js"
     )
       @folders_to_watch = folders_to_watch
       @tailwind_input_file = tailwind_input_file
       @tailwind_output_file = tailwind_output_file
       @skip_tailwind = skip_tailwind
+      @stimulus_output_file = stimulus_output_file
     end
 
     def watch
@@ -27,6 +29,8 @@ module ShopifyThemeBuilder
       create_tailwind_file
 
       run_tailwind
+
+      run_stimulus
 
       watch_folders
     end
@@ -61,6 +65,8 @@ module ShopifyThemeBuilder
         end
 
         run_tailwind
+
+        run_stimulus if changes.keys.any? { |f| f.end_with?("controller.js") }
       end
     end
 
@@ -91,6 +97,29 @@ module ShopifyThemeBuilder
         @tailwind components;
         @tailwind utilities;
       TAILWIND
+    end
+
+    def run_stimulus
+      controllers_files = @folders_to_watch.map { Dir.glob("#{_1}/**/controller.js") }.flatten
+
+      return if controllers_files.empty?
+
+      puts "Building Stimulus controllers..."
+
+      content = +base_stimulus_content
+
+      controllers_files.each do |file|
+        content << File.read(file)
+        content << "\n"
+      end
+
+      FileUtils.mkdir_p(File.dirname(@stimulus_output_file))
+      File.write(@stimulus_output_file, content.strip)
+    end
+
+    def base_stimulus_content
+      "import { Application, Controller } from \"https://unpkg.com/@hotwired/stimulus/dist/stimulus.js\"\n\
+window.Stimulus = Application.start()\n\n"
     end
   end
 end

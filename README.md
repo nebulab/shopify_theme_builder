@@ -33,6 +33,11 @@ _components/
     schema.json
     style.css
     index.js
+    controllers.js
+assets/
+  tailwind-output.css
+  tailwind.css
+  controllers.js
 blocks/
   button.liquid
 ```
@@ -42,6 +47,34 @@ All files inside the `button` folder will be compiled into a single `button.liqu
 ## Tailwind CSS Support
 
 ShopifyThemeBuilder also supports Tailwind CSS integration. You can specify an input CSS file that includes Tailwind directives and an output CSS file where the compiled styles will be saved. The watcher will automatically run the Tailwind build process whenever changes are detected in the components folder.
+
+## Stimulus JS Support
+
+ShopifyThemeBuilder supports Stimulus JS integration. You can specify an output JavaScript file where the compiled Stimulus controllers will be saved. The watcher will automatically compile the Stimulus controllers whenever changes are detected in the components folder.
+
+### How to create Stimulus controllers
+
+To create Stimulus controllers, create a `controller.js` file inside your component folder. For example:
+
+```
+_components/
+  my_component/
+    controller.js
+```
+
+The content of the `controller.js` file should follow the Stimulus controller structure. For example:
+
+```javascript
+class HelloController extends Controller {
+  connect() {
+    console.log("My component controller connected")
+  }
+}
+
+Stimulus.register("hello", HelloController)
+```
+
+When the watcher runs, it will compile all `controller.js` files from your components into a single JavaScript file that can be included in your Shopify theme.
 
 ## Installation
 
@@ -61,9 +94,10 @@ bundle exec theme-builder watch
 
 You can customize multiple options when running the watcher:
 - `--folders`: Specify one or more folders to watch (default is `_components`).
-- `--tailwind-input-file`: Specify the Tailwind CSS input file (default is `src/styles/tailwind.css`).
-- `--tailwind-output-file`: Specify the Tailwind CSS output file (default is `assets/tailwind-output.css`).
+- `--tailwind-input-file`: Specify the Tailwind CSS input file (default is `./assets/tailwind.css`).
+- `--tailwind-output-file`: Specify the Tailwind CSS output file (default is `./assets/tailwind-output.css`).
 - `--skip-tailwind`: Skip the Tailwind CSS build process (default is `false`).
+- `--stimulus-output-file`: Specify the Stimulus JS output file (default is `./assets/controllers.js`).
 
 If you need help with all available options, or how to set them, run:
 
@@ -79,6 +113,12 @@ The watcher will create a CSS file that can be included in your Shopify theme la
 {{ 'tailwind-output.css' | asset_url | stylesheet_tag }}
 ```
 
+And a JavaScript file that can be included in your Shopify theme layout in this way:
+
+```liquid
+<script type="module" src="{{ 'controllers.js' | asset_url }}"></script>
+```
+
 ## Development
 
 After checking out the repo, run `bin/setup` to install dependencies. Then, run `bin/rspec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
@@ -88,7 +128,7 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 ## Next Steps
 
 - [x] Run the tailwind build process automatically.
-- [ ] Add Stimulus JS support.
+- [x] Add Stimulus JS support.
 - [ ] Create a command to build an example component with all the files.
 - [ ] Decompile existing Shopify files into components structure (?).
 
