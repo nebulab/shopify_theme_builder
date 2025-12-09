@@ -24,7 +24,8 @@ module ShopifyThemeBuilder
       liquid: LIQUID_FILE_TYPES.map { |type| "#{type}.liquid" },
       schema: "schema.json",
       stylesheet: "style.css",
-      javascript: "index.js"
+      javascript: "index.js",
+      stimulus: "controller.js"
     }.freeze
     SUPPORTED_VALUES = SUPPORTED_FILES.values.flatten.freeze
 
@@ -79,9 +80,8 @@ module ShopifyThemeBuilder
     # Checks if the compiled filename is valid.
     def correct_filename?
       if compiled_filename.nil?
-        @logger.error(
-          "Invalid file name for file: #{@file}\nProbably because the file is directly under the components folder."
-        )
+        @logger.error "Invalid file name for file: #{@file}\n\
+Probably because the file is directly under the components folder."
 
         return false
       end
@@ -126,7 +126,7 @@ module ShopifyThemeBuilder
 
     # Compiles the content by aggregating various related files.
     def compile_content
-      SUPPORTED_FILES.each_key do |key|
+      SUPPORTED_FILES.except(:stimulus).each_key do |key|
         @contents << formatted_content(key)
       end
     end
