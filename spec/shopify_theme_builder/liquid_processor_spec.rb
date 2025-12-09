@@ -243,5 +243,24 @@ Compiled from #{file}\n\
         expect(File).to have_received(:write).with("#{file_type}s/#{folder_arr.join("--")}.liquid", expected_content)
       end
     end
+
+    context "when stimulus controller file is present" do
+      before do
+        allow(File).to receive(:read).with(file).and_return("<button>Click me</button>")
+        allow(File).to receive(:exist?).with("_folder_to_watch/#{component_name}/comment.txt").and_return(false)
+        allow(File).to receive(:exist?).with("_folder_to_watch/#{component_name}/doc.txt").and_return(false)
+        allow(File).to receive(:exist?).with("_folder_to_watch/#{component_name}/schema.json").and_return(false)
+        allow(File).to receive(:exist?).with("_folder_to_watch/#{component_name}/style.css").and_return(false)
+        allow(File).to receive(:exist?).with("_folder_to_watch/#{component_name}/index.js").and_return(false)
+        allow(File).to receive(:exist?).with("_folder_to_watch/#{component_name}/controller.js").and_return(true)
+        allow(File).to receive(:write)
+      end
+
+      it "does not process the stimulus controller file" do
+        described_class.new(file).process
+
+        expect(File).not_to have_received(:read).with("_folder_to_watch/#{component_name}/controller.js")
+      end
+    end
   end
 end
