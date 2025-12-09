@@ -19,6 +19,7 @@ module ShopifyThemeBuilder
       @tailwind_output_file = tailwind_output_file
       @skip_tailwind = skip_tailwind
       @stimulus_output_file = stimulus_output_file
+      @stimulus_controller_file = ShopifyThemeBuilder::LiquidProcessor::SUPPORTED_FILES[:stimulus]
     end
 
     def watch
@@ -66,7 +67,7 @@ module ShopifyThemeBuilder
 
         run_tailwind
 
-        run_stimulus if changes.keys.any? { |f| f.end_with?("controller.js") }
+        run_stimulus if changes.keys.any? { |f| f.end_with?(@stimulus_controller_file) }
       end
     end
 
@@ -100,7 +101,7 @@ module ShopifyThemeBuilder
     end
 
     def run_stimulus
-      controllers_files = @folders_to_watch.map { Dir.glob("#{_1}/**/controller.js") }.flatten
+      controllers_files = @folders_to_watch.map { Dir.glob("#{_1}/**/#{@stimulus_controller_file}") }.flatten
 
       return if controllers_files.empty?
 
