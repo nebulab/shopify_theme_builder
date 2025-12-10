@@ -62,7 +62,7 @@ module ShopifyThemeBuilder
         changes.each_key do |filename|
           relative_filename = filename.gsub("#{Dir.pwd}/", "")
 
-          Builder.new(files_to_process: [relative_filename]).build if relative_filename.start_with?(*@folders_to_watch)
+          Builder.new(files_to_process: [relative_filename]).build
         end
 
         run_tailwind

@@ -250,26 +250,6 @@ window.Stimulus = Application.start()\n\n\
       end
     end
 
-    context "when files outside components folder change" do
-      before do
-        spy = double(watch: nil)
-        allow(ShopifyThemeBuilder::Filewatcher).to receive(:new).and_return(spy)
-        allow(spy).to receive(:watch) do |&block|
-          changes = {
-            "/path/to/project/_non_components_folder/button/block.liquid" => :updated
-          }
-          block&.call(changes)
-        end
-      end
-
-      it "does not process files outside components folder" do
-        watcher.watch
-
-        expect(ShopifyThemeBuilder::Builder).not_to have_received(:new)
-          .with(files_to_process: ["_non_components_folder/button/block.liquid"])
-      end
-    end
-
     context "when tailwind input file does not exist" do
       before do
         allow(File).to receive(:exist?).and_return(false)
