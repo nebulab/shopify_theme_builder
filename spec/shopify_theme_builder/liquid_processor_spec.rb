@@ -262,5 +262,35 @@ Compiled from #{file}\n\
         expect(File).not_to have_received(:read).with("_folder_to_watch/#{component_name}/controller.js")
       end
     end
+
+    context "when the event is deleted" do
+      before do
+        allow(File).to receive(:delete)
+      end
+
+      it "deletes the compiled file" do
+        described_class.new(file:, event: :deleted).process
+
+        expect(File).to have_received(:delete).with("blocks/button.liquid")
+      end
+
+      it "logs the deletion of the compiled file" do
+        spy = double(info: nil)
+        allow(Logger).to receive(:new).and_return(spy)
+
+        described_class.new(file:, event: :deleted).process
+
+        expect(spy).to have_received(:info).with("Deleted compiled file: blocks/button.liquid")
+      end
+
+      it "skips further processing" do
+        spy = double(write: nil)
+        allow(File).to receive(:write).and_return(spy)
+
+        described_class.new(file:, event: :deleted).process
+
+        expect(spy).not_to have_received(:write)
+      end
+    end
   end
 end

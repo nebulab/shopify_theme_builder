@@ -37,6 +37,8 @@ module ShopifyThemeBuilder
     end
 
     def process
+      return if component_deleted?
+
       return unless processable?
 
       compile_content
@@ -47,6 +49,21 @@ module ShopifyThemeBuilder
     end
 
     private
+
+    # If a liquid file is deleted, we want to delete the compiled file as well,
+    # and skip further processing.
+    def component_deleted?
+      return false unless File.extname(@file) == ".liquid" && @event == :deleted
+
+      file_to_remove = compiled_filename(file_type: File.basename(@file, ".liquid"))
+
+      if File.exist?(file_to_remove)
+        File.delete(file_to_remove)
+        @logger.info "Deleted compiled file: #{file_to_remove}"
+      end
+
+      true
+    end
 
     # Returns true if the file is processable, false otherwise.
     def processable?
@@ -114,7 +131,7 @@ module ShopifyThemeBuilder
 
     # Returns the compiled filename based on the component name and liquid file type.
     # Example: _folder_to_watch/button/section.liquid -> sections/button.liquid
-    def compiled_filename
+    def compiled_filename(file_type: liquid_file_type)
       filename_arr = file_dir.split(File::SEPARATOR) # Split the directory path into an array.
       filename_arr = filename_arr.drop(1) # Remove the base components folder from the path. E.g., _components
       filename_arr -= LIQUID_FILE_TYPES # Remove liquid file types from the path. E.g., section, snippet, block
@@ -123,7 +140,7 @@ module ShopifyThemeBuilder
 
       return nil if filename.empty?
 
-      "#{liquid_file_type}s/#{filename}.liquid"
+      "#{file_type}s/#{filename}.liquid"
     end
 
     # Compiles the content by aggregating various related files.
