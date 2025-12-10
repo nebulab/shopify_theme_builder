@@ -67,7 +67,11 @@ module ShopifyThemeBuilder
 
     # Returns true if the file is processable, false otherwise.
     def processable?
-      supported? && correct_liquid_file? && correct_filename?
+      !directory? && supported? && correct_liquid_file? && correct_filename?
+    end
+
+    def directory?
+      File.directory?(@file)
     end
 
     # Checks if the file is in the list of supported files.

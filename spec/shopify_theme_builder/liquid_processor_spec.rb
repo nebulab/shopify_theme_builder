@@ -292,5 +292,20 @@ Compiled from #{file}\n\
         expect(spy).not_to have_received(:write)
       end
     end
+
+    context "when the file is a directory" do
+      before do
+        allow(File).to receive(:directory?).with(file).and_return(true)
+      end
+
+      it "skips processing the directory" do
+        spy = double(error: nil)
+        allow(Logger).to receive(:new).and_return(spy)
+
+        described_class.new(file:, event: :updated).process
+
+        expect(spy).not_to have_received(:error).with("Skipping unsupported file: #{file}")
+      end
+    end
   end
 end
