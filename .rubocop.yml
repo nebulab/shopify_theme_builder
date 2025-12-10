@@ -21,3 +21,7 @@ Metrics/ParameterLists:
 
 RSpec/NestedGroups:
   Max: 5
+
+Metrics/ClassLength:
+  Exclude:
+    - 'lib/shopify_theme_builder/liquid_processor.rb'

@@ -12,8 +12,8 @@ module ShopifyThemeBuilder
     def build
       puts "Processing #{@files_to_process.count} files..."
 
-      @files_to_process.each do |file|
-        @processed_files << ShopifyThemeBuilder::LiquidProcessor.new(file).process
+      @files_to_process.each do |file, event|
+        @processed_files << ShopifyThemeBuilder::LiquidProcessor.new(file:, event:).process
       end
 
       puts "Built #{@processed_files.count} files." if @processed_files.any?

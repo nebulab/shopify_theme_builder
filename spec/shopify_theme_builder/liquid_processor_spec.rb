@@ -3,7 +3,7 @@
 require "spec_helper"
 
 RSpec.describe ShopifyThemeBuilder::LiquidProcessor do
-  subject { described_class.new(file) }
+  subject { described_class.new(file:, event: :updated) }
 
   let(:file_type) { "block" }
   let(:component_name) { "button" }
@@ -34,7 +34,7 @@ RSpec.describe ShopifyThemeBuilder::LiquidProcessor do
         spy = double(error: nil)
         allow(Logger).to receive(:new).and_return(spy)
 
-        described_class.new(file).process
+        described_class.new(file:, event: :updated).process
 
         expect(spy).to have_received(:error).with("Skipping unsupported file: #{file}")
       end
@@ -49,7 +49,7 @@ RSpec.describe ShopifyThemeBuilder::LiquidProcessor do
         spy = double(error: nil)
         allow(Logger).to receive(:new).and_return(spy)
 
-        described_class.new(file).process
+        described_class.new(file:, event: :updated).process
 
         expect(spy).to have_received(:error).with("No liquid file found in #{File.dirname(file)}")
       end
@@ -64,7 +64,7 @@ RSpec.describe ShopifyThemeBuilder::LiquidProcessor do
         spy = double(error: nil)
         allow(Logger).to receive(:new).and_return(spy)
 
-        described_class.new(file).process
+        described_class.new(file:, event: :updated).process
 
         expect(spy).to have_received(:error).with("Multiple liquid files found in #{File.dirname(file)}")
       end
@@ -81,7 +81,7 @@ RSpec.describe ShopifyThemeBuilder::LiquidProcessor do
         spy = double(error: nil)
         allow(Logger).to receive(:new).and_return(spy)
 
-        described_class.new(file).process
+        described_class.new(file:, event: :updated).process
 
         expect(spy).to have_received(:error).with("Invalid file name for file: #{file}\n\
 Probably because the file is directly under the components folder.")
@@ -235,7 +235,7 @@ Compiled from #{file}\n\
       end
 
       it "creates a compiled liquid file with right content" do
-        described_class.new(file).process
+        described_class.new(file:, event: :updated).process
 
         folder_arr = component_name.split(File::SEPARATOR) -
                      described_class::LIQUID_FILE_TYPES -
@@ -257,9 +257,54 @@ Compiled from #{file}\n\
       end
 
       it "does not process the stimulus controller file" do
-        described_class.new(file).process
+        described_class.new(file:, event: :updated).process
 
         expect(File).not_to have_received(:read).with("_folder_to_watch/#{component_name}/controller.js")
+      end
+    end
+
+    context "when the event is deleted" do
+      before do
+        allow(File).to receive(:delete)
+      end
+
+      it "deletes the compiled file" do
+        described_class.new(file:, event: :deleted).process
+
+        expect(File).to have_received(:delete).with("blocks/button.liquid")
+      end
+
+      it "logs the deletion of the compiled file" do
+        spy = double(info: nil)
+        allow(Logger).to receive(:new).and_return(spy)
+
+        described_class.new(file:, event: :deleted).process
+
+        expect(spy).to have_received(:info).with("Deleted compiled file: blocks/button.liquid")
+      end
+
+      it "skips further processing" do
+        spy = double(write: nil)
+        allow(File).to receive(:write).and_return(spy)
+
+        described_class.new(file:, event: :deleted).process
+
+        expect(spy).not_to have_received(:write)
+      end
+    end
+
+    context "when the file is a directory" do
+      before do
+        allow(File).to receive(:directory?).with(file).and_return(true)
+      end
+
+      it "skips processing the directory" do
+        spy = double(error: nil)
+        allow(Logger).to receive(:new).and_return(spy)
+
+        described_class.new(file:, event: :updated).process
+
+        expect(spy).not_to have_received(:error).with("Skipping unsupported file: #{file}")
       end
     end
   end

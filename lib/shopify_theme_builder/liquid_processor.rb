@@ -29,13 +29,16 @@ module ShopifyThemeBuilder
     }.freeze
     SUPPORTED_VALUES = SUPPORTED_FILES.values.flatten.freeze
 
-    def initialize(file)
-      @file = file
+    def initialize(file:, event:)
+      @file = file.gsub("#{Dir.pwd}/", "")
+      @event = event
       @contents = +""
       @logger = Logger.new($stdout)
     end
 
     def process
+      return if component_deleted?
+
       return unless processable?
 
       compile_content
@@ -47,9 +50,28 @@ module ShopifyThemeBuilder
 
     private
 
+    # If a liquid file is deleted, we want to delete the compiled file as well,
+    # and skip further processing.
+    def component_deleted?
+      return false unless File.extname(@file) == ".liquid" && @event == :deleted
+
+      file_to_remove = compiled_filename(file_type: File.basename(@file, ".liquid"))
+
+      if File.exist?(file_to_remove)
+        File.delete(file_to_remove)
+        @logger.info "Deleted compiled file: #{file_to_remove}"
+      end
+
+      true
+    end
+
     # Returns true if the file is processable, false otherwise.
     def processable?
-      supported? && correct_liquid_file? && correct_filename?
+      !directory? && supported? && correct_liquid_file? && correct_filename?
+    end
+
+    def directory?
+      File.directory?(@file)
     end
 
     # Checks if the file is in the list of supported files.
@@ -80,8 +102,9 @@ module ShopifyThemeBuilder
     # Checks if the compiled filename is valid.
     def correct_filename?
       if compiled_filename.nil?
-        @logger.error "Invalid file name for file: #{@file}\n\
-Probably because the file is directly under the components folder."
+        @logger.error(
+          "Invalid file name for file: #{@file}\nProbably because the file is directly under the components folder."
+        )
 
         return false
       end
@@ -112,7 +135,7 @@ Probably because the file is directly under the components folder."
 
     # Returns the compiled filename based on the component name and liquid file type.
     # Example: _folder_to_watch/button/section.liquid -> sections/button.liquid
-    def compiled_filename
+    def compiled_filename(file_type: liquid_file_type)
       filename_arr = file_dir.split(File::SEPARATOR) # Split the directory path into an array.
       filename_arr = filename_arr.drop(1) # Remove the base components folder from the path. E.g., _components
       filename_arr -= LIQUID_FILE_TYPES # Remove liquid file types from the path. E.g., section, snippet, block
@@ -121,7 +144,7 @@ Probably because the file is directly under the components folder."
 
       return nil if filename.empty?
 
-      "#{liquid_file_type}s/#{filename}.liquid"
+      "#{file_type}s/#{filename}.liquid"
     end
 
     # Compiles the content by aggregating various related files.
