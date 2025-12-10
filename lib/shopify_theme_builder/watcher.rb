@@ -50,20 +50,22 @@ module ShopifyThemeBuilder
     def initial_build
       puts "Doing an initial build..."
 
+      files_to_process = {}
+
       @folders_to_watch.each do |folder|
-        Builder.new(files_to_process: Dir.glob("#{folder}/**/*.*")).build
+        Dir.glob("#{folder}/**/*.*").each do |file|
+          files_to_process[file] = :updated
+        end
       end
+
+      Builder.new(files_to_process: files_to_process).build
     end
 
     def watch_folders
       puts "Watching for changes in '#{@folders_to_watch.join(", ")}' folders..."
 
       Filewatcher.new(@folders_to_watch).watch do |changes|
-        changes.each_key do |filename|
-          relative_filename = filename.gsub("#{Dir.pwd}/", "")
-
-          Builder.new(files_to_process: [relative_filename]).build
-        end
+        Builder.new(files_to_process: changes).build
 
         run_tailwind
 

@@ -29,8 +29,9 @@ module ShopifyThemeBuilder
     }.freeze
     SUPPORTED_VALUES = SUPPORTED_FILES.values.flatten.freeze
 
-    def initialize(file)
-      @file = file
+    def initialize(file:, event:)
+      @file = file.gsub("#{Dir.pwd}/", "")
+      @event = event
       @contents = +""
       @logger = Logger.new($stdout)
     end
@@ -80,8 +81,9 @@ module ShopifyThemeBuilder
     # Checks if the compiled filename is valid.
     def correct_filename?
       if compiled_filename.nil?
-        @logger.error "Invalid file name for file: #{@file}\n\
-Probably because the file is directly under the components folder."
+        @logger.error(
+          "Invalid file name for file: #{@file}\nProbably because the file is directly under the components folder."
+        )
 
         return false
       end

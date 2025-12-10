@@ -5,12 +5,12 @@ require "spec_helper"
 RSpec.describe ShopifyThemeBuilder::Builder do
   describe "#build" do
     let(:files_to_process) do
-      [
-        "_folder_to_watch/button/section.liquid",
-        "_folder_to_watch/button/schema.json",
-        "_folder_to_watch/button/style.css",
-        "_folder_to_watch/button/index.js"
-      ]
+      {
+        "_folder_to_watch/button/section.liquid" => :updated,
+        "_folder_to_watch/button/schema.json" => :updated,
+        "_folder_to_watch/button/style.css" => :updated,
+        "_folder_to_watch/button/index.js" => :updated
+      }
     end
 
     before do
@@ -33,13 +33,13 @@ RSpec.describe ShopifyThemeBuilder::Builder do
     end
 
     context "when specific files are provided" do
-      let(:files_to_process) { ["_folder_to_watch/button/section.liquid"] }
+      let(:files_to_process) { { "_folder_to_watch/button/section.liquid" => :updated } }
 
       it "processes only the specified files" do
         described_class.new(files_to_process:).build
 
         expect(ShopifyThemeBuilder::LiquidProcessor).to have_received(:new)
-          .with("_folder_to_watch/button/section.liquid")
+          .with(file: "_folder_to_watch/button/section.liquid", event: :updated)
       end
     end
   end

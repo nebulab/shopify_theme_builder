@@ -10,7 +10,6 @@ RSpec.describe ShopifyThemeBuilder::Watcher do
       allow(FileUtils).to receive(:mkdir_p)
       allow(ShopifyThemeBuilder::Builder).to receive(:new).and_return(double(build: nil))
       allow(ShopifyThemeBuilder::Filewatcher).to receive(:new).and_return(double(watch: nil))
-      allow(Dir).to receive(:pwd).and_return("/path/to/project")
       allow(Dir).to receive(:glob).with("_components/**/*.*").and_return(["_components/button/block.liquid"])
       allow(Dir).to receive(:glob).with("_components/**/controller.js").and_return([])
       allow(File).to receive(:exist?).and_return(true)
@@ -35,7 +34,7 @@ RSpec.describe ShopifyThemeBuilder::Watcher do
       watcher.watch
 
       expect(ShopifyThemeBuilder::Builder).to have_received(:new)
-        .with(files_to_process: ["_components/button/block.liquid"])
+        .with(files_to_process: { "_components/button/block.liquid" => :updated })
     end
 
     it "runs Tailwind CSS build" do
@@ -105,7 +104,7 @@ RSpec.describe ShopifyThemeBuilder::Watcher do
         watcher.watch
 
         expect(ShopifyThemeBuilder::Builder).to have_received(:new)
-          .with(files_to_process: ["_components/button/schema.json"])
+          .with(files_to_process: { "/path/to/project/_components/button/schema.json" => :created })
       end
 
       it "runs Tailwind CSS build after processing changes" do
@@ -230,7 +229,7 @@ window.Stimulus = Application.start()\n\n\
         end
 
         before do
-          allow(Dir).to receive(:glob).with("_custom/**/*.*")
+          allow(Dir).to receive(:glob).with("_custom/**/*.*").and_return(["_custom/widget/block.liquid"])
           allow(Dir).to receive(:glob).with("_components/**/controller.js")
                                       .and_return(["_components/button/controller.js"])
           allow(Dir).to receive(:glob).with("_custom/**/controller.js").and_return(["_custom/widget/controller.js"])

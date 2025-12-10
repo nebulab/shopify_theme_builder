@@ -3,7 +3,7 @@
 require "spec_helper"
 
 RSpec.describe ShopifyThemeBuilder::LiquidProcessor do
-  subject { described_class.new(file) }
+  subject { described_class.new(file:, event: :updated) }
 
   let(:file_type) { "block" }
   let(:component_name) { "button" }
@@ -34,7 +34,7 @@ RSpec.describe ShopifyThemeBuilder::LiquidProcessor do
         spy = double(error: nil)
         allow(Logger).to receive(:new).and_return(spy)
 
-        described_class.new(file).process
+        described_class.new(file:, event: :updated).process
 
         expect(spy).to have_received(:error).with("Skipping unsupported file: #{file}")
       end
@@ -49,7 +49,7 @@ RSpec.describe ShopifyThemeBuilder::LiquidProcessor do
         spy = double(error: nil)
         allow(Logger).to receive(:new).and_return(spy)
 
-        described_class.new(file).process
+        described_class.new(file:, event: :updated).process
 
         expect(spy).to have_received(:error).with("No liquid file found in #{File.dirname(file)}")
       end
@@ -64,7 +64,7 @@ RSpec.describe ShopifyThemeBuilder::LiquidProcessor do
         spy = double(error: nil)
         allow(Logger).to receive(:new).and_return(spy)
 
-        described_class.new(file).process
+        described_class.new(file:, event: :updated).process
 
         expect(spy).to have_received(:error).with("Multiple liquid files found in #{File.dirname(file)}")
       end
@@ -81,7 +81,7 @@ RSpec.describe ShopifyThemeBuilder::LiquidProcessor do
         spy = double(error: nil)
         allow(Logger).to receive(:new).and_return(spy)
 
-        described_class.new(file).process
+        described_class.new(file:, event: :updated).process
 
         expect(spy).to have_received(:error).with("Invalid file name for file: #{file}\n\
 Probably because the file is directly under the components folder.")
@@ -235,7 +235,7 @@ Compiled from #{file}\n\
       end
 
       it "creates a compiled liquid file with right content" do
-        described_class.new(file).process
+        described_class.new(file:, event: :updated).process
 
         folder_arr = component_name.split(File::SEPARATOR) -
                      described_class::LIQUID_FILE_TYPES -
@@ -257,7 +257,7 @@ Compiled from #{file}\n\
       end
 
       it "does not process the stimulus controller file" do
-        described_class.new(file).process
+        described_class.new(file:, event: :updated).process
 
         expect(File).not_to have_received(:read).with("_folder_to_watch/#{component_name}/controller.js")
       end
