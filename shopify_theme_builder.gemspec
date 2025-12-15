@@ -33,6 +33,7 @@ Gem::Specification.new do |spec|
   spec.executables = spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
+  spec.add_dependency "activesupport", ">= 6.0", "< 9.0"
   spec.add_dependency "filewatcher", "~> 2.1"
   spec.add_dependency "logger", "~> 1.7"
   spec.add_dependency "tailwindcss-ruby", ">= 3.0", "< 5.0"
