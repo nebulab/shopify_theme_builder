@@ -25,3 +25,11 @@ RSpec/NestedGroups:
 Metrics/ClassLength:
   Exclude:
     - 'lib/shopify_theme_builder/liquid_processor.rb'
+
+Metrics/MethodLength:
+  Exclude:
+    - 'lib/shopify_theme_builder/command_line.rb'
+
+Metrics/AbcSize:
+  Exclude:
+    - 'lib/shopify_theme_builder/command_line.rb'

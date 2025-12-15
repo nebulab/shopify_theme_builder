@@ -133,4 +133,260 @@ RSpec.describe ShopifyThemeBuilder::CommandLine do
       end
     end
   end
+
+  describe "#generate" do
+    let(:cli) { described_class.new }
+
+    before do
+      allow(cli).to receive(:directory)
+      allow(cli).to receive(:say_error)
+    end
+
+    context "when all options are provided" do
+      context "with section type" do
+        it "generates a section component without prompting" do
+          allow(cli).to receive(:options).and_return({
+                                                       type: "section",
+                                                       name: "MySection",
+                                                       folder: "_components"
+                                                     })
+
+          cli.generate
+
+          expect(cli).to have_received(:directory).with(
+            "generators",
+            "_components/mysection",
+            exclude_pattern: "doc.txt"
+          )
+        end
+      end
+
+      context "with block type" do
+        it "generates a block component without prompting" do
+          allow(cli).to receive(:options).and_return({
+                                                       type: "block",
+                                                       name: "MyBlock",
+                                                       folder: "_components"
+                                                     })
+
+          cli.generate
+
+          expect(cli).to have_received(:directory).with(
+            "generators",
+            "_components/myblock",
+            exclude_pattern: "doc.txt"
+          )
+        end
+      end
+
+      context "with snippet type" do
+        it "generates a snippet component without schema.json" do
+          allow(cli).to receive(:options).and_return({
+                                                       type: "snippet",
+                                                       name: "MySnippet",
+                                                       folder: "_components"
+                                                     })
+
+          cli.generate
+
+          expect(cli).to have_received(:directory).with(
+            "generators",
+            "_components/mysnippet",
+            exclude_pattern: "schema.json"
+          )
+        end
+      end
+    end
+
+    context "when type is not provided" do
+      before do
+        allow(cli).to receive(:options).and_return({
+                                                     type: nil,
+                                                     name: "TestComponent",
+                                                     folder: "_components"
+                                                   })
+        allow(cli).to receive(:ask).with(
+          "Enter component type (section, block or snippet):",
+          limited_to: ShopifyThemeBuilder::CommandLine::SUPPORTED_TYPES
+        ).and_return("section")
+      end
+
+      it "asks for type" do
+        cli.generate
+
+        expect(cli).to have_received(:ask).with(
+          "Enter component type (section, block or snippet):",
+          limited_to: ShopifyThemeBuilder::CommandLine::SUPPORTED_TYPES
+        )
+      end
+
+      it "generates component with provided type" do
+        cli.generate
+
+        expect(cli).to have_received(:directory).with(
+          "generators",
+          "_components/testcomponent",
+          exclude_pattern: "doc.txt"
+        )
+      end
+    end
+
+    context "when type is invalid" do
+      before do
+        allow(cli).to receive(:options).and_return({
+                                                     type: "invalid",
+                                                     name: "TestComponent",
+                                                     folder: "_components"
+                                                   })
+        allow(cli).to receive(:ask).with(
+          "Enter component type (section, block or snippet):",
+          limited_to: ShopifyThemeBuilder::CommandLine::SUPPORTED_TYPES
+        ).and_return("section")
+      end
+
+      it "shows error for invalid type" do
+        cli.generate
+
+        expect(cli).to have_received(:say_error)
+          .with("Error: Unsupported type 'invalid'. Supported types are: section, block, snippet")
+      end
+
+      it "asks for type again" do
+        cli.generate
+
+        expect(cli).to have_received(:ask).with(
+          "Enter component type (section, block or snippet):",
+          limited_to: ShopifyThemeBuilder::CommandLine::SUPPORTED_TYPES
+        )
+      end
+    end
+
+    context "when name is not provided" do
+      before do
+        allow(cli).to receive(:options).and_return({
+                                                     type: "section",
+                                                     name: nil,
+                                                     folder: "_components"
+                                                   })
+        allow(cli).to receive(:ask).with("Enter component name (E.g., Slideshow):").and_return("MyComponent")
+      end
+
+      it "asks for name" do
+        cli.generate
+
+        expect(cli).to have_received(:ask).with("Enter component name (E.g., Slideshow):")
+      end
+
+      it "generates component with provided name" do
+        cli.generate
+
+        expect(cli).to have_received(:directory).with(
+          "generators",
+          "_components/mycomponent",
+          exclude_pattern: "doc.txt"
+        )
+      end
+    end
+
+    context "when folder is not provided" do
+      before do
+        allow(cli).to receive(:options).and_return({
+                                                     type: "section",
+                                                     name: "TestComponent",
+                                                     folder: nil
+                                                   })
+        allow(cli).to receive(:ask).with("Enter folder to generate the component in:",
+                                         default: "_components").and_return("custom_components")
+      end
+
+      it "asks for folder with default value" do
+        cli.generate
+
+        expect(cli).to have_received(:ask).with("Enter folder to generate the component in:", default: "_components")
+      end
+
+      it "generates component in provided folder" do
+        cli.generate
+
+        expect(cli).to have_received(:directory).with(
+          "generators",
+          "custom_components/testcomponent",
+          exclude_pattern: "doc.txt"
+        )
+      end
+    end
+
+    context "when multiple options are missing" do
+      before do
+        allow(cli).to receive(:options).and_return({
+                                                     type: nil,
+                                                     name: nil,
+                                                     folder: nil
+                                                   })
+        allow(cli).to receive(:ask).with(
+          "Enter component type (section, block or snippet):",
+          limited_to: ShopifyThemeBuilder::CommandLine::SUPPORTED_TYPES
+        ).and_return("block")
+        allow(cli).to receive(:ask).with("Enter component name (E.g., Slideshow):").and_return("MyBlock")
+        allow(cli).to receive(:ask).with("Enter folder to generate the component in:",
+                                         default: "_components").and_return("_components")
+      end
+
+      it "asks for type" do
+        cli.generate
+
+        expect(cli).to have_received(:ask).with(
+          "Enter component type (section, block or snippet):",
+          limited_to: ShopifyThemeBuilder::CommandLine::SUPPORTED_TYPES
+        )
+      end
+
+      it "asks for name" do
+        cli.generate
+
+        expect(cli).to have_received(:ask).with("Enter component name (E.g., Slideshow):")
+      end
+
+      it "asks for folder" do
+        cli.generate
+
+        expect(cli).to have_received(:ask).with("Enter folder to generate the component in:", default: "_components")
+      end
+
+      it "generates component with all provided options" do
+        cli.generate
+
+        expect(cli).to have_received(:directory).with(
+          "generators",
+          "_components/myblock",
+          exclude_pattern: "doc.txt"
+        )
+      end
+    end
+
+    context "when name contains spaces and special characters" do
+      it "parameterizes the name correctly" do
+        allow(cli).to receive(:options).and_return({
+                                                     type: "section",
+                                                     name: "My Awesome Component!",
+                                                     folder: "_components"
+                                                   })
+
+        cli.generate
+
+        expect(cli).to have_received(:directory).with(
+          "generators",
+          "_components/my_awesome_component",
+          exclude_pattern: "doc.txt"
+        )
+      end
+    end
+  end
+
+  describe ".source_root" do
+    it "returns the correct source root path" do
+      expected_path = File.expand_path("../..", __dir__)
+      expect(described_class.source_root).to eq(expected_path)
+    end
+  end
 end
