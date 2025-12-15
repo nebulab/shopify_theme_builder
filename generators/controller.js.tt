@@ -1,0 +1,7 @@
+class <%= name.camelize.delete(" ") %>Controller extends Controller {
+  connect() {
+    console.log("Hello, Stimulus!", this.element)
+  }
+}
+
+Stimulus.register("<%= name.parameterize %>", <%= name.camelize.delete(" ") %>Controller)

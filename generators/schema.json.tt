@@ -1,0 +1,33 @@
+{
+  "name": "<%= name %>",
+  "tag": "<%= type == "section" ? "section" : "div" %>",
+  "class": "<%= name.parameterize %>",
+  "limit": 1,
+  "settings": [
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Title"
+    }
+  ],
+  "max_blocks": 5,
+  "blocks": [{ "type": "@theme" }, { "type": "@app" }],
+  "presets": [
+    {
+      "name": "<%= name %>",
+      "settings": {
+        "title": "<%= name %>"
+      },
+      "blocks": []
+    }
+  ],
+  "locales": {
+    "en": {
+      "title": "<%= name %>"
+    }
+  },
+  "enabled_on": {
+    "templates": ["*"],
+    "groups": ["*"]
+  }
+}
