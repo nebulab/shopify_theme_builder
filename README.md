@@ -105,6 +105,19 @@ If you need help with all available options, or how to set them, run:
 bundle exec theme-builder help watch
 ```
 
+### Component generator
+
+This gem also provides a command to generate a new component with all the necessary files. To create a new component, run:
+
+```bash
+bundle exec theme-builder generate
+```
+
+You can customize the component type, name and folder by providing additional options:
+- `--type`: Specify the component type (`section`, `block`, or `snippet`).
+- `--name`: Specify the component name.
+- `--folder`: Specify the components folder (default is `_components`).
+
 ## After Running the Watcher
 
 The watcher will create a CSS file that can be included in your Shopify theme layout in this way:
@@ -129,7 +142,7 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 - [x] Run the tailwind build process automatically.
 - [x] Add Stimulus JS support.
-- [ ] Create a command to build an example component with all the files.
+- [x] Create a command to build an example component with all the files.
 - [ ] Decompile existing Shopify files into components structure (?).
 
 ## Contributing
