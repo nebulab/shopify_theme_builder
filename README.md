@@ -137,7 +137,8 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 - [x] Run the tailwind build process automatically.
 - [x] Add Stimulus JS support.
 - [x] Create a command to build an example component with all the files.
-- [ ] Decompile existing Shopify files into components structure (?).
+- [ ] Investigate if it's possible to use import maps instead of a single file for Stimulus controllers.
+- [ ] Decompile existing Shopify files into components structure (Is it really needed?).
 
 ## Contributing
 
