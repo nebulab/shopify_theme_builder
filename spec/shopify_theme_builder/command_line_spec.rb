@@ -402,6 +402,7 @@ RSpec.describe ShopifyThemeBuilder::CommandLine do
 
       before do
         allow(File).to receive(:exist?).with("snippets/stylesheets.liquid").and_return(false)
+        allow(File).to receive(:exist?).with("snippets/scripts.liquid").and_return(false)
         allow(File).to receive(:exist?).with("layout/theme.liquid").and_return(true)
         allow(File).to receive(:read).with(theme_file_path).and_return(theme_content.dup)
       end
@@ -462,8 +463,10 @@ RSpec.describe ShopifyThemeBuilder::CommandLine do
 
       before do
         allow(File).to receive(:exist?).with("snippets/stylesheets.liquid").and_return(true)
+        allow(File).to receive(:exist?).with("snippets/scripts.liquid").and_return(false)
         allow(File).to receive(:exist?).with("layout/theme.liquid").and_return(true)
         allow(File).to receive(:read).with(snippets_file_path).and_return(snippets_content.dup)
+        allow(File).to receive(:read).with("layout/theme.liquid").and_return("<body></body>")
       end
 
       it "prefers snippets file over layout file" do
@@ -532,6 +535,7 @@ RSpec.describe ShopifyThemeBuilder::CommandLine do
 
       before do
         allow(File).to receive(:exist?).with("snippets/stylesheets.liquid").and_return(false)
+        allow(File).to receive(:exist?).with("snippets/scripts.liquid").and_return(false)
         allow(File).to receive(:exist?).with("layout/theme.liquid").and_return(true)
         allow(File).to receive(:read).with("layout/theme.liquid").and_return(theme_content)
       end
@@ -555,6 +559,7 @@ RSpec.describe ShopifyThemeBuilder::CommandLine do
     context "when neither snippets nor layout file exists" do
       before do
         allow(File).to receive(:exist?).with("snippets/stylesheets.liquid").and_return(false)
+        allow(File).to receive(:exist?).with("snippets/scripts.liquid").and_return(false)
         allow(File).to receive(:exist?).with("layout/theme.liquid").and_return(false)
       end
 
@@ -590,6 +595,7 @@ RSpec.describe ShopifyThemeBuilder::CommandLine do
 
       before do
         allow(File).to receive(:exist?).with("snippets/stylesheets.liquid").and_return(false)
+        allow(File).to receive(:exist?).with("snippets/scripts.liquid").and_return(false)
         allow(File).to receive(:exist?).with("layout/theme.liquid").and_return(true)
         allow(File).to receive(:read).with("layout/theme.liquid").and_return(theme_content)
       end
@@ -607,6 +613,185 @@ RSpec.describe ShopifyThemeBuilder::CommandLine do
         cli.install
 
         expect(File).not_to have_received(:write)
+      end
+    end
+
+    context "with Stimulus JS injection" do
+      let(:theme_file_path) { "layout/theme.liquid" }
+      let(:theme_content) do
+        <<~LIQUID
+          {{ 'application.css' | asset_url | stylesheet_tag }}
+          </head>
+          <body>
+            {{ content_for_layout }}
+          </body>
+        LIQUID
+      end
+
+      before do
+        allow(File).to receive(:exist?).with("snippets/stylesheets.liquid").and_return(false)
+        allow(File).to receive(:exist?).with("snippets/scripts.liquid").and_return(false)
+        allow(File).to receive(:exist?).with("layout/theme.liquid").and_return(true)
+        allow(File).to receive(:read).with(theme_file_path).and_return(theme_content.dup)
+      end
+
+      it "injects both Tailwind CSS and Stimulus JS" do
+        cli.install
+
+        expect(File).to have_received(:write).twice
+      end
+
+      it "injects Stimulus JS before closing body tag" do
+        cli.install
+
+        expect(File).to have_received(:write).with(
+          theme_file_path,
+          a_string_including('<script type="module" defer="defer" src="{{ \'controllers.js\' | asset_url }}"></script>')
+        )
+      end
+
+      it "shows success message for Stimulus injection" do
+        cli.install
+
+        expect(cli).to have_received(:say).with(
+          "Injected Stimulus JS tag into #{theme_file_path}.",
+          :green
+        )
+      end
+
+      context "when snippets/scripts.liquid exists" do
+        let(:snippets_file_path) { "snippets/scripts.liquid" }
+        let(:snippets_content) do
+          <<~LIQUID
+            <script src="{{ 'main.js' | asset_url }}"></script>
+          LIQUID
+        end
+
+        before do
+          allow(File).to receive(:exist?).with("snippets/scripts.liquid").and_return(true)
+          allow(File).to receive(:read).with(snippets_file_path).and_return(snippets_content.dup)
+        end
+
+        it "prefers snippets/scripts.liquid over layout" do
+          cli.install
+
+          script_tag = '<script type="module" defer="defer" ' \
+                       'src="{{ \'controllers.js\' | asset_url }}"></script>'
+          expect(File).to have_received(:write).with(
+            snippets_file_path,
+            a_string_including(script_tag)
+          )
+        end
+
+        it "appends Stimulus JS tag at the end of snippet file" do
+          cli.install
+
+          script_tag = "<script type=\"module\" defer=\"defer\" " \
+                       "src=\"{{ 'controllers.js' | asset_url }}\"></script>\n"
+          expect(File).to have_received(:write).with(
+            snippets_file_path,
+            a_string_ending_with(script_tag)
+          )
+        end
+
+        it "shows success message for snippet injection" do
+          cli.install
+
+          expect(cli).to have_received(:say).with(
+            "Injected Stimulus JS tag into #{snippets_file_path}.",
+            :green
+          )
+        end
+      end
+
+      context "when Stimulus JS is already included" do
+        let(:theme_content) do
+          <<~LIQUID
+            {{ 'application.css' | asset_url | stylesheet_tag }}
+            </head>
+            <body>
+              {{ content_for_layout }}
+              <script type="module" defer="defer" src="{{ 'controllers.js' | asset_url }}"></script>
+            </body>
+          LIQUID
+        end
+
+        it "skips Stimulus JS injection" do
+          cli.install
+
+          expect(cli).to have_received(:say).with(
+            "Stimulus JS already included in #{theme_file_path}. Skipping injection.",
+            :blue
+          )
+        end
+
+        it "still injects Tailwind CSS" do
+          cli.install
+
+          expect(File).to have_received(:write).with(
+            theme_file_path,
+            a_string_including("{{ 'tailwind-output.css' | asset_url | stylesheet_tag }}")
+          )
+        end
+      end
+
+      context "when both Tailwind CSS and Stimulus JS are already included" do
+        let(:theme_content) do
+          <<~LIQUID
+            {{ 'application.css' | asset_url | stylesheet_tag }}
+            {{ 'tailwind-output.css' | asset_url | stylesheet_tag }}
+            </head>
+            <body>
+              {{ content_for_layout }}
+              <script type="module" defer="defer" src="{{ 'controllers.js' | asset_url }}"></script>
+            </body>
+          LIQUID
+        end
+
+        it "skips Tailwind CSS injection" do
+          cli.install
+
+          expect(cli).to have_received(:say).with(
+            "Tailwind CSS already included in #{theme_file_path}. Skipping injection.",
+            :blue
+          )
+        end
+
+        it "skips Stimulus JS injection" do
+          cli.install
+
+          expect(cli).to have_received(:say).with(
+            "Stimulus JS already included in #{theme_file_path}. Skipping injection.",
+            :blue
+          )
+        end
+
+        it "does not write to the file" do
+          cli.install
+
+          expect(File).not_to have_received(:write)
+        end
+      end
+
+      context "when no closing body tag is found" do
+        let(:theme_content) do
+          <<~LIQUID
+            {{ 'application.css' | asset_url | stylesheet_tag }}
+            </head>
+            <div>
+              {{ content_for_layout }}
+            </div>
+          LIQUID
+        end
+
+        it "shows error message" do
+          cli.install
+
+          expect(cli).to have_received(:say_error).with(
+            "Error: Could not find a way to inject Stimulus JS. Please manually add the JS tag.",
+            :red
+          )
+        end
       end
     end
   end
