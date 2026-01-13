@@ -34,6 +34,10 @@ module ShopifyThemeBuilder
       )
     end
 
+    desc "install", "Set up your Shopify theme with Tailwind CSS, Stimulus JS, and the file watcher"
+    def install
+    end
+
     desc "generate", "Generate an example component structure"
     method_option :type, type: :string, desc: "Type of component to generate ('section', 'block' or 'snippet')"
     method_option :name, type: :string, desc: "Name of the component to generate"
