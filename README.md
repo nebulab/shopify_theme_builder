@@ -126,6 +126,11 @@ You can customize the component type, name and folder by providing additional op
 - `--name`: Specify the component name.
 - `--folder`: Specify the components folder (default is `_components`).
 
+## Tested With
+
+- [Skeleton Theme](https://github.com/Shopify/skeleton-theme)
+- [Horizon Theme](https://github.com/Shopify/horizon)
+
 ## Development
 
 After checking out the repo, run `bin/setup` to install dependencies. Then, run `bin/rspec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
