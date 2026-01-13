@@ -383,6 +383,234 @@ RSpec.describe ShopifyThemeBuilder::CommandLine do
     end
   end
 
+  describe "#install" do
+    let(:cli) { described_class.new }
+
+    before do
+      allow(File).to receive(:write)
+      allow(cli).to receive(:say)
+      allow(cli).to receive(:say_error)
+    end
+
+    context "when layout/theme.liquid exists" do
+      let(:theme_file_path) { "layout/theme.liquid" }
+      let(:theme_content) do
+        <<~LIQUID
+          {{ 'application.css' | asset_url | stylesheet_tag }}
+        LIQUID
+      end
+
+      before do
+        allow(File).to receive(:exist?).with("snippets/stylesheets.liquid").and_return(false)
+        allow(File).to receive(:exist?).with("layout/theme.liquid").and_return(true)
+        allow(File).to receive(:read).with(theme_file_path).and_return(theme_content.dup)
+      end
+
+      it "injects Tailwind CSS after existing stylesheet tag" do
+        cli.install
+
+        expect(File).to have_received(:write).with(
+          theme_file_path,
+          a_string_including("{{ 'tailwind-output.css' | asset_url | stylesheet_tag }}")
+        )
+      end
+
+      it "shows success message" do
+        cli.install
+
+        expect(cli).to have_received(:say).with(
+          "Injected Tailwind CSS tag into #{theme_file_path}.",
+          :green
+        )
+      end
+
+      it "places Tailwind CSS tag on new line after existing tag" do
+        cli.install
+
+        expect(File).to have_received(:write).with(
+          theme_file_path,
+          a_string_matching(/application\.css.*?\n\{\{ 'tailwind-output\.css'/m)
+        )
+      end
+
+      context "with stylesheet tag containing attributes" do
+        let(:theme_content) do
+          <<~LIQUID
+            {{ 'base.css' | asset_url | stylesheet_tag: media: 'all' }}
+          LIQUID
+        end
+
+        it "injects after stylesheet tag with attributes" do
+          cli.install
+
+          expect(File).to have_received(:write).with(
+            theme_file_path,
+            a_string_matching(/base\.css.*?media.*?\n\{\{ 'tailwind-output\.css'/m)
+          )
+        end
+      end
+    end
+
+    context "when snippets/stylesheets.liquid exists" do
+      let(:snippets_file_path) { "snippets/stylesheets.liquid" }
+      let(:snippets_content) do
+        <<~LIQUID
+          {{ 'base.css' | asset_url | stylesheet_tag }}
+          {{ 'components.css' | asset_url | stylesheet_tag }}
+        LIQUID
+      end
+
+      before do
+        allow(File).to receive(:exist?).with("snippets/stylesheets.liquid").and_return(true)
+        allow(File).to receive(:exist?).with("layout/theme.liquid").and_return(true)
+        allow(File).to receive(:read).with(snippets_file_path).and_return(snippets_content.dup)
+      end
+
+      it "prefers snippets file over layout file" do
+        cli.install
+
+        expect(File).to have_received(:write).with(snippets_file_path, anything)
+      end
+
+      it "appends Tailwind CSS tag at the end of the file" do
+        cli.install
+
+        expect(File).to have_received(:write).with(
+          snippets_file_path,
+          a_string_ending_with("{{ 'tailwind-output.css' | asset_url | stylesheet_tag }}\n")
+        )
+      end
+
+      it "shows success message for snippet injection" do
+        cli.install
+
+        expect(cli).to have_received(:say).with(
+          "Injected Tailwind CSS tag into #{snippets_file_path}.",
+          :green
+        )
+      end
+
+      context "when snippet file has trailing newline" do
+        let(:snippets_content) do
+          <<~LIQUID
+            {{ 'base.css' | asset_url | stylesheet_tag }}
+
+          LIQUID
+        end
+
+        it "adds Tailwind CSS tag preserving structure" do
+          cli.install
+
+          expect(File).to have_received(:write).with(
+            snippets_file_path,
+            a_string_including("{{ 'tailwind-output.css' | asset_url | stylesheet_tag }}")
+          )
+        end
+      end
+
+      context "when snippet file has no trailing newline" do
+        let(:snippets_content) { "{{ 'base.css' | asset_url | stylesheet_tag }}" }
+
+        it "adds newline before Tailwind CSS tag" do
+          cli.install
+
+          expect(File).to have_received(:write).with(
+            snippets_file_path,
+            "{{ 'base.css' | asset_url | stylesheet_tag }}\n{{ 'tailwind-output.css' | asset_url | stylesheet_tag }}\n"
+          )
+        end
+      end
+    end
+
+    context "when Tailwind CSS is already included" do
+      let(:theme_content) do
+        <<~LIQUID
+          {{ 'application.css' | asset_url | stylesheet_tag }}
+          {{ 'tailwind-output.css' | asset_url | stylesheet_tag }}
+        LIQUID
+      end
+
+      before do
+        allow(File).to receive(:exist?).with("snippets/stylesheets.liquid").and_return(false)
+        allow(File).to receive(:exist?).with("layout/theme.liquid").and_return(true)
+        allow(File).to receive(:read).with("layout/theme.liquid").and_return(theme_content)
+      end
+
+      it "skips injection" do
+        cli.install
+
+        expect(File).not_to have_received(:write)
+      end
+
+      it "shows skip message" do
+        cli.install
+
+        expect(cli).to have_received(:say).with(
+          "Tailwind CSS already included in layout/theme.liquid. Skipping injection.",
+          :blue
+        )
+      end
+    end
+
+    context "when neither snippets nor layout file exists" do
+      before do
+        allow(File).to receive(:exist?).with("snippets/stylesheets.liquid").and_return(false)
+        allow(File).to receive(:exist?).with("layout/theme.liquid").and_return(false)
+      end
+
+      it "shows error message" do
+        cli.install
+
+        expect(cli).to have_received(:say_error).with(
+          "Error: Could not find a theme file to inject Tailwind CSS.",
+          :red
+        )
+      end
+
+      it "does not write any files" do
+        cli.install
+
+        expect(File).not_to have_received(:write)
+      end
+
+      it "returns early without processing" do
+        result = cli.install
+
+        expect(result).to be_nil
+      end
+    end
+
+    context "when no stylesheet tags are found in layout file" do
+      let(:theme_content) do
+        <<~LIQUID
+          <h1>Welcome</h1>
+          <p>No stylesheets here</p>
+        LIQUID
+      end
+
+      before do
+        allow(File).to receive(:exist?).with("snippets/stylesheets.liquid").and_return(false)
+        allow(File).to receive(:exist?).with("layout/theme.liquid").and_return(true)
+        allow(File).to receive(:read).with("layout/theme.liquid").and_return(theme_content)
+      end
+
+      it "shows error message" do
+        cli.install
+
+        expect(cli).to have_received(:say_error).with(
+          "Error: Could not find a way to inject Tailwind CSS. Please manually add the CSS tag.",
+          :red
+        )
+      end
+
+      it "does not write to the file" do
+        cli.install
+
+        expect(File).not_to have_received(:write)
+      end
+    end
+  end
+
   describe ".source_root" do
     it "returns the correct source root path" do
       expected_path = File.expand_path("../..", __dir__)
