@@ -84,6 +84,14 @@ Install the gem and add to the application's Gemfile by executing:
 bundle add shopify_theme_builder --group "development"
 ```
 
+Run the gem's install command:
+
+```bash
+bundle exec theme-builder install
+```
+
+This will inject Tailwind CSS and Stimulus JS into your Shopify theme layout, and add an entry in the `Procfile.dev` to run the watcher if present.
+
 ## Usage
 
 To watch for changes in the default components folder and build the theme, run:
@@ -117,20 +125,6 @@ You can customize the component type, name and folder by providing additional op
 - `--type`: Specify the component type (`section`, `block`, or `snippet`).
 - `--name`: Specify the component name.
 - `--folder`: Specify the components folder (default is `_components`).
-
-## After Running the Watcher
-
-The watcher will create a CSS file that can be included in your Shopify theme layout in this way:
-
-```liquid
-{{ 'tailwind-output.css' | asset_url | stylesheet_tag }}
-```
-
-And a JavaScript file that can be included in your Shopify theme layout in this way:
-
-```liquid
-<script type="module" src="{{ 'controllers.js' | asset_url }}"></script>
-```
 
 ## Development
 
