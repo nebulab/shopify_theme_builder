@@ -126,6 +126,11 @@ You can customize the component type, name and folder by providing additional op
 - `--name`: Specify the component name.
 - `--folder`: Specify the components folder (default is `_components`).
 
+## Tested With
+
+- [Skeleton Theme](https://github.com/Shopify/skeleton-theme)
+- [Horizon Theme](https://github.com/Shopify/horizon)
+
 ## Development
 
 After checking out the repo, run `bin/setup` to install dependencies. Then, run `bin/rspec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
@@ -137,7 +142,8 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 - [x] Run the tailwind build process automatically.
 - [x] Add Stimulus JS support.
 - [x] Create a command to build an example component with all the files.
-- [ ] Decompile existing Shopify files into components structure (?).
+- [ ] Investigate if it's possible to use import maps instead of a single file for Stimulus controllers.
+- [ ] Decompile existing Shopify files into components structure (Is it really needed?).
 
 ## Contributing
 
