@@ -34,6 +34,13 @@ module ShopifyThemeBuilder
       )
     end
 
+    desc "install", "Set up your Shopify theme with Tailwind CSS, Stimulus JS, and the file watcher"
+    def install
+      add_tailwind_to_theme
+      add_stimulus_to_theme
+      add_watcher_to_procfile
+    end
+
     desc "generate", "Generate an example component structure"
     method_option :type, type: :string, desc: "Type of component to generate ('section', 'block' or 'snippet')"
     method_option :name, type: :string, desc: "Name of the component to generate"
@@ -68,6 +75,120 @@ module ShopifyThemeBuilder
       return "doc.txt" unless @type == "snippet"
 
       "schema.json"
+    end
+
+    def add_tailwind_to_theme
+      theme_file_path =
+        if File.exist?("snippets/stylesheets.liquid")
+          "snippets/stylesheets.liquid"
+        elsif File.exist?("layout/theme.liquid")
+          "layout/theme.liquid"
+        end
+
+      unless theme_file_path
+        say_error "Error: Could not find a theme file to inject Tailwind CSS.", :red
+        return
+      end
+
+      theme_file = File.read(theme_file_path)
+
+      if theme_file.include?("tailwind-output.css")
+        say "Tailwind CSS already included in #{theme_file_path}. Skipping injection.", :blue
+        return
+      end
+
+      injection_tag = "{{ 'tailwind-output.css' | asset_url | stylesheet_tag }}"
+
+      if theme_file_path == "snippets/stylesheets.liquid"
+        add_tailwind_to_snippet(theme_file_path, theme_file, injection_tag)
+      else
+        add_tailwind_to_layout(theme_file_path, theme_file, injection_tag)
+      end
+    end
+
+    def add_tailwind_to_snippet(theme_file_path, theme_file, injection_tag)
+      File.write(theme_file_path, "#{theme_file.chomp}\n#{injection_tag}\n")
+      say "Injected Tailwind CSS tag into #{theme_file_path}.", :green
+    end
+
+    def add_tailwind_to_layout(theme_file_path, theme_file, injection_tag)
+      stylesheet_tag_regex =
+        /(\{\{\s*['"][^'"]+['"]\s*\|\s*asset_url\s*\|\s*stylesheet_tag(?:\s*:\s*((?!\}\}).)*)?\s*\}\})/
+      if theme_file.match?(stylesheet_tag_regex)
+        updated_content = theme_file.sub(
+          stylesheet_tag_regex,
+          "\\1\n#{injection_tag}"
+        )
+        File.write(theme_file_path, updated_content)
+        say "Injected Tailwind CSS tag into #{theme_file_path}.", :green
+      else
+        say_error "Error: Could not find a way to inject Tailwind CSS. Please manually add the CSS tag.",
+                  :red
+      end
+    end
+
+    def add_stimulus_to_theme
+      theme_file_path =
+        if File.exist?("snippets/scripts.liquid")
+          "snippets/scripts.liquid"
+        elsif File.exist?("layout/theme.liquid")
+          "layout/theme.liquid"
+        end
+
+      unless theme_file_path
+        say_error "Error: Could not find a theme file to inject Stimulus JS.", :red
+        return
+      end
+
+      theme_file = File.read(theme_file_path)
+
+      if theme_file.include?("controllers.js")
+        say "Stimulus JS already included in #{theme_file_path}. Skipping injection.", :blue
+        return
+      end
+
+      injection_tag = "<script type=\"module\" defer=\"defer\" src=\"{{ 'controllers.js' | asset_url }}\"></script>"
+
+      if theme_file_path == "snippets/scripts.liquid"
+        add_stimulus_to_snippet(theme_file_path, theme_file, injection_tag)
+      else
+        add_stimulus_to_layout(theme_file_path, theme_file, injection_tag)
+      end
+    end
+
+    def add_stimulus_to_snippet(theme_file_path, theme_file, injection_tag)
+      File.write(theme_file_path, "#{theme_file.chomp}\n#{injection_tag}\n")
+      say "Injected Stimulus JS tag into #{theme_file_path}.", :green
+    end
+
+    def add_stimulus_to_layout(theme_file_path, theme_file, injection_tag)
+      script_tag_regex = %r{(\s*)</body>}
+      if theme_file.match?(script_tag_regex)
+        updated_content = theme_file.sub(
+          script_tag_regex,
+          "\\1\n#{injection_tag}\n</body>"
+        )
+        File.write(theme_file_path, updated_content)
+        say "Injected Stimulus JS tag into #{theme_file_path}.", :green
+      else
+        say_error "Error: Could not find a way to inject Stimulus JS. Please manually add the JS tag.",
+                  :red
+      end
+    end
+
+    def add_watcher_to_procfile
+      procfile_path = "Procfile.dev"
+      return unless File.exist?(procfile_path)
+
+      procfile_content = File.read(procfile_path)
+
+      if procfile_content.include?("theme-builder watch")
+        say "Watcher command already present in #{procfile_path}. Skipping addition.", :blue
+        return
+      end
+
+      File.write(procfile_path, "#{procfile_content.chomp}\ntheme-builder: bundle exec theme-builder watch\n")
+      say "Added watcher command to #{procfile_path}.", :green
     end
   end
 end

@@ -383,6 +383,566 @@ RSpec.describe ShopifyThemeBuilder::CommandLine do
     end
   end
 
+  describe "#install" do
+    let(:cli) { described_class.new }
+
+    before do
+      allow(File).to receive(:write)
+      allow(cli).to receive(:say)
+      allow(cli).to receive(:say_error)
+    end
+
+    context "when layout/theme.liquid exists" do
+      let(:theme_file_path) { "layout/theme.liquid" }
+      let(:theme_content) do
+        <<~LIQUID
+          {{ 'application.css' | asset_url | stylesheet_tag }}
+        LIQUID
+      end
+
+      before do
+        allow(File).to receive(:exist?).with("snippets/stylesheets.liquid").and_return(false)
+        allow(File).to receive(:exist?).with("snippets/scripts.liquid").and_return(false)
+        allow(File).to receive(:exist?).with("layout/theme.liquid").and_return(true)
+        allow(File).to receive(:exist?).with("Procfile.dev").and_return(false)
+        allow(File).to receive(:read).with(theme_file_path).and_return(theme_content.dup)
+      end
+
+      it "injects Tailwind CSS after existing stylesheet tag" do
+        cli.install
+
+        expect(File).to have_received(:write).with(
+          theme_file_path,
+          a_string_including("{{ 'tailwind-output.css' | asset_url | stylesheet_tag }}")
+        )
+      end
+
+      it "shows success message" do
+        cli.install
+
+        expect(cli).to have_received(:say).with(
+          "Injected Tailwind CSS tag into #{theme_file_path}.",
+          :green
+        )
+      end
+
+      it "places Tailwind CSS tag on new line after existing tag" do
+        cli.install
+
+        expect(File).to have_received(:write).with(
+          theme_file_path,
+          a_string_matching(/application\.css.*?\n\{\{ 'tailwind-output\.css'/m)
+        )
+      end
+
+      context "with stylesheet tag containing attributes" do
+        let(:theme_content) do
+          <<~LIQUID
+            {{ 'base.css' | asset_url | stylesheet_tag: media: 'all' }}
+          LIQUID
+        end
+
+        it "injects after stylesheet tag with attributes" do
+          cli.install
+
+          expect(File).to have_received(:write).with(
+            theme_file_path,
+            a_string_matching(/base\.css.*?media.*?\n\{\{ 'tailwind-output\.css'/m)
+          )
+        end
+      end
+    end
+
+    context "when snippets/stylesheets.liquid exists" do
+      let(:snippets_file_path) { "snippets/stylesheets.liquid" }
+      let(:snippets_content) do
+        <<~LIQUID
+          {{ 'base.css' | asset_url | stylesheet_tag }}
+          {{ 'components.css' | asset_url | stylesheet_tag }}
+        LIQUID
+      end
+
+      before do
+        allow(File).to receive(:exist?).with("snippets/stylesheets.liquid").and_return(true)
+        allow(File).to receive(:exist?).with("snippets/scripts.liquid").and_return(false)
+        allow(File).to receive(:exist?).with("layout/theme.liquid").and_return(true)
+        allow(File).to receive(:exist?).with("Procfile.dev").and_return(false)
+        allow(File).to receive(:read).with(snippets_file_path).and_return(snippets_content.dup)
+        allow(File).to receive(:read).with("layout/theme.liquid").and_return("<body></body>")
+      end
+
+      it "prefers snippets file over layout file" do
+        cli.install
+
+        expect(File).to have_received(:write).with(snippets_file_path, anything)
+      end
+
+      it "appends Tailwind CSS tag at the end of the file" do
+        cli.install
+
+        expect(File).to have_received(:write).with(
+          snippets_file_path,
+          a_string_ending_with("{{ 'tailwind-output.css' | asset_url | stylesheet_tag }}\n")
+        )
+      end
+
+      it "shows success message for snippet injection" do
+        cli.install
+
+        expect(cli).to have_received(:say).with(
+          "Injected Tailwind CSS tag into #{snippets_file_path}.",
+          :green
+        )
+      end
+
+      context "when snippet file has trailing newline" do
+        let(:snippets_content) do
+          <<~LIQUID
+            {{ 'base.css' | asset_url | stylesheet_tag }}
+
+          LIQUID
+        end
+
+        it "adds Tailwind CSS tag preserving structure" do
+          cli.install
+
+          expect(File).to have_received(:write).with(
+            snippets_file_path,
+            a_string_including("{{ 'tailwind-output.css' | asset_url | stylesheet_tag }}")
+          )
+        end
+      end
+
+      context "when snippet file has no trailing newline" do
+        let(:snippets_content) { "{{ 'base.css' | asset_url | stylesheet_tag }}" }
+
+        it "adds newline before Tailwind CSS tag" do
+          cli.install
+
+          expect(File).to have_received(:write).with(
+            snippets_file_path,
+            "{{ 'base.css' | asset_url | stylesheet_tag }}\n{{ 'tailwind-output.css' | asset_url | stylesheet_tag }}\n"
+          )
+        end
+      end
+    end
+
+    context "when Tailwind CSS is already included" do
+      let(:theme_content) do
+        <<~LIQUID
+          {{ 'application.css' | asset_url | stylesheet_tag }}
+          {{ 'tailwind-output.css' | asset_url | stylesheet_tag }}
+        LIQUID
+      end
+
+      before do
+        allow(File).to receive(:exist?).with("snippets/stylesheets.liquid").and_return(false)
+        allow(File).to receive(:exist?).with("snippets/scripts.liquid").and_return(false)
+        allow(File).to receive(:exist?).with("layout/theme.liquid").and_return(true)
+        allow(File).to receive(:exist?).with("Procfile.dev").and_return(false)
+        allow(File).to receive(:read).with("layout/theme.liquid").and_return(theme_content)
+      end
+
+      it "skips injection" do
+        cli.install
+
+        expect(File).not_to have_received(:write)
+      end
+
+      it "shows skip message" do
+        cli.install
+
+        expect(cli).to have_received(:say).with(
+          "Tailwind CSS already included in layout/theme.liquid. Skipping injection.",
+          :blue
+        )
+      end
+    end
+
+    context "when neither snippets nor layout file exists" do
+      before do
+        allow(File).to receive(:exist?).with("snippets/stylesheets.liquid").and_return(false)
+        allow(File).to receive(:exist?).with("snippets/scripts.liquid").and_return(false)
+        allow(File).to receive(:exist?).with("layout/theme.liquid").and_return(false)
+        allow(File).to receive(:exist?).with("Procfile.dev").and_return(false)
+      end
+
+      it "shows error message" do
+        cli.install
+
+        expect(cli).to have_received(:say_error).with(
+          "Error: Could not find a theme file to inject Tailwind CSS.",
+          :red
+        )
+      end
+
+      it "does not write any files" do
+        cli.install
+
+        expect(File).not_to have_received(:write)
+      end
+
+      it "returns early without processing" do
+        result = cli.install
+
+        expect(result).to be_nil
+      end
+    end
+
+    context "when no stylesheet tags are found in layout file" do
+      let(:theme_content) do
+        <<~LIQUID
+          <h1>Welcome</h1>
+          <p>No stylesheets here</p>
+        LIQUID
+      end
+
+      before do
+        allow(File).to receive(:exist?).with("snippets/stylesheets.liquid").and_return(false)
+        allow(File).to receive(:exist?).with("snippets/scripts.liquid").and_return(false)
+        allow(File).to receive(:exist?).with("layout/theme.liquid").and_return(true)
+        allow(File).to receive(:exist?).with("Procfile.dev").and_return(false)
+        allow(File).to receive(:read).with("layout/theme.liquid").and_return(theme_content)
+      end
+
+      it "shows error message" do
+        cli.install
+
+        expect(cli).to have_received(:say_error).with(
+          "Error: Could not find a way to inject Tailwind CSS. Please manually add the CSS tag.",
+          :red
+        )
+      end
+
+      it "does not write to the file" do
+        cli.install
+
+        expect(File).not_to have_received(:write)
+      end
+    end
+
+    context "with Stimulus JS injection" do
+      let(:theme_file_path) { "layout/theme.liquid" }
+      let(:theme_content) do
+        <<~LIQUID
+          {{ 'application.css' | asset_url | stylesheet_tag }}
+          </head>
+          <body>
+            {{ content_for_layout }}
+          </body>
+        LIQUID
+      end
+
+      before do
+        allow(File).to receive(:exist?).with("snippets/stylesheets.liquid").and_return(false)
+        allow(File).to receive(:exist?).with("snippets/scripts.liquid").and_return(false)
+        allow(File).to receive(:exist?).with("layout/theme.liquid").and_return(true)
+        allow(File).to receive(:exist?).with("Procfile.dev").and_return(false)
+        allow(File).to receive(:read).with(theme_file_path).and_return(theme_content.dup)
+      end
+
+      it "injects both Tailwind CSS and Stimulus JS" do
+        cli.install
+
+        expect(File).to have_received(:write).twice
+      end
+
+      it "injects Stimulus JS before closing body tag" do
+        cli.install
+
+        expect(File).to have_received(:write).with(
+          theme_file_path,
+          a_string_including('<script type="module" defer="defer" src="{{ \'controllers.js\' | asset_url }}"></script>')
+        )
+      end
+
+      it "shows success message for Stimulus injection" do
+        cli.install
+
+        expect(cli).to have_received(:say).with(
+          "Injected Stimulus JS tag into #{theme_file_path}.",
+          :green
+        )
+      end
+
+      context "when snippets/scripts.liquid exists" do
+        let(:snippets_file_path) { "snippets/scripts.liquid" }
+        let(:snippets_content) do
+          <<~LIQUID
+            <script src="{{ 'main.js' | asset_url }}"></script>
+          LIQUID
+        end
+
+        before do
+          allow(File).to receive(:exist?).with("snippets/scripts.liquid").and_return(true)
+          allow(File).to receive(:read).with(snippets_file_path).and_return(snippets_content.dup)
+        end
+
+        it "prefers snippets/scripts.liquid over layout" do
+          cli.install
+
+          script_tag = '<script type="module" defer="defer" ' \
+                       'src="{{ \'controllers.js\' | asset_url }}"></script>'
+          expect(File).to have_received(:write).with(
+            snippets_file_path,
+            a_string_including(script_tag)
+          )
+        end
+
+        it "appends Stimulus JS tag at the end of snippet file" do
+          cli.install
+
+          script_tag = "<script type=\"module\" defer=\"defer\" " \
+                       "src=\"{{ 'controllers.js' | asset_url }}\"></script>\n"
+          expect(File).to have_received(:write).with(
+            snippets_file_path,
+            a_string_ending_with(script_tag)
+          )
+        end
+
+        it "shows success message for snippet injection" do
+          cli.install
+
+          expect(cli).to have_received(:say).with(
+            "Injected Stimulus JS tag into #{snippets_file_path}.",
+            :green
+          )
+        end
+      end
+
+      context "when Stimulus JS is already included" do
+        let(:theme_content) do
+          <<~LIQUID
+            {{ 'application.css' | asset_url | stylesheet_tag }}
+            </head>
+            <body>
+              {{ content_for_layout }}
+              <script type="module" defer="defer" src="{{ 'controllers.js' | asset_url }}"></script>
+            </body>
+          LIQUID
+        end
+
+        it "skips Stimulus JS injection" do
+          cli.install
+
+          expect(cli).to have_received(:say).with(
+            "Stimulus JS already included in #{theme_file_path}. Skipping injection.",
+            :blue
+          )
+        end
+
+        it "still injects Tailwind CSS" do
+          cli.install
+
+          expect(File).to have_received(:write).with(
+            theme_file_path,
+            a_string_including("{{ 'tailwind-output.css' | asset_url | stylesheet_tag }}")
+          )
+        end
+      end
+
+      context "when both Tailwind CSS and Stimulus JS are already included" do
+        let(:theme_content) do
+          <<~LIQUID
+            {{ 'application.css' | asset_url | stylesheet_tag }}
+            {{ 'tailwind-output.css' | asset_url | stylesheet_tag }}
+            </head>
+            <body>
+              {{ content_for_layout }}
+              <script type="module" defer="defer" src="{{ 'controllers.js' | asset_url }}"></script>
+            </body>
+          LIQUID
+        end
+
+        it "skips Tailwind CSS injection" do
+          cli.install
+
+          expect(cli).to have_received(:say).with(
+            "Tailwind CSS already included in #{theme_file_path}. Skipping injection.",
+            :blue
+          )
+        end
+
+        it "skips Stimulus JS injection" do
+          cli.install
+
+          expect(cli).to have_received(:say).with(
+            "Stimulus JS already included in #{theme_file_path}. Skipping injection.",
+            :blue
+          )
+        end
+
+        it "does not write to the file" do
+          cli.install
+
+          expect(File).not_to have_received(:write)
+        end
+      end
+
+      context "when no closing body tag is found" do
+        let(:theme_content) do
+          <<~LIQUID
+            {{ 'application.css' | asset_url | stylesheet_tag }}
+            </head>
+            <div>
+              {{ content_for_layout }}
+            </div>
+          LIQUID
+        end
+
+        it "shows error message" do
+          cli.install
+
+          expect(cli).to have_received(:say_error).with(
+            "Error: Could not find a way to inject Stimulus JS. Please manually add the JS tag.",
+            :red
+          )
+        end
+      end
+    end
+
+    context "with Procfile.dev watcher integration" do
+      let(:procfile_path) { "Procfile.dev" }
+      let(:cli) { described_class.new }
+      let(:theme_file_path) { "layout/theme.liquid" }
+      let(:theme_content) do
+        <<~LIQUID
+          {{ 'application.css' | asset_url | stylesheet_tag }}
+          </head>
+          <body>
+            {{ content_for_layout }}
+          </body>
+        LIQUID
+      end
+
+      before do
+        allow(File).to receive(:exist?).and_call_original
+        allow(File).to receive(:exist?).with("snippets/stylesheets.liquid").and_return(false)
+        allow(File).to receive(:exist?).with("snippets/scripts.liquid").and_return(false)
+        allow(File).to receive(:exist?).with(theme_file_path).and_return(true)
+        allow(File).to receive(:read).with(theme_file_path).and_return(theme_content.dup)
+        allow(File).to receive(:write)
+        allow(cli).to receive(:say)
+        allow(cli).to receive(:say_error)
+      end
+
+      context "when Procfile.dev exists" do
+        let(:procfile_content) do
+          <<~PROCFILE
+            web: bin/rails server -p 3000
+            css: bin/rails tailwindcss:watch
+          PROCFILE
+        end
+
+        before do
+          allow(File).to receive(:exist?).with(procfile_path).and_return(true)
+          allow(File).to receive(:read).with(procfile_path).and_return(procfile_content)
+        end
+
+        it "adds the theme-builder watcher command to Procfile.dev" do
+          cli.install
+
+          expect(File).to have_received(:write).with(
+            procfile_path,
+            a_string_ending_with("theme-builder: bundle exec theme-builder watch\n")
+          )
+        end
+
+        it "shows success message" do
+          cli.install
+
+          expect(cli).to have_received(:say).with(
+            "Added watcher command to #{procfile_path}.",
+            :green
+          )
+        end
+
+        it "appends the command after existing content" do
+          cli.install
+
+          expect(File).to have_received(:write).with(
+            procfile_path,
+            a_string_matching(%r{css: bin/rails tailwindcss:watch\ntheme-builder: bundle exec theme-builder watch\n\z})
+          )
+        end
+      end
+
+      context "when Procfile.dev does not exist" do
+        before do
+          allow(File).to receive(:exist?).with(procfile_path).and_return(false)
+        end
+
+        it "does not attempt to write to Procfile.dev" do
+          cli.install
+
+          expect(File).not_to have_received(:write).with(
+            procfile_path,
+            anything
+          )
+        end
+
+        it "does not show any message about Procfile.dev" do
+          cli.install
+
+          expect(cli).not_to have_received(:say).with(
+            a_string_matching(/Procfile/),
+            anything
+          )
+        end
+      end
+
+      context "when watcher command already exists in Procfile.dev" do
+        let(:procfile_content) do
+          <<~PROCFILE
+            web: bin/rails server -p 3000
+            theme-builder: bundle exec theme-builder watch
+          PROCFILE
+        end
+
+        before do
+          allow(File).to receive(:exist?).with(procfile_path).and_return(true)
+          allow(File).to receive(:read).with(procfile_path).and_return(procfile_content)
+        end
+
+        it "skips adding the watcher command" do
+          cli.install
+
+          expect(File).not_to have_received(:write).with(
+            procfile_path,
+            anything
+          )
+        end
+
+        it "shows skip message" do
+          cli.install
+
+          expect(cli).to have_received(:say).with(
+            "Watcher command already present in #{procfile_path}. Skipping addition.",
+            :blue
+          )
+        end
+      end
+
+      context "when Procfile.dev has no trailing newline" do
+        let(:procfile_content) { "web: bin/rails server -p 3000" }
+
+        before do
+          allow(File).to receive(:exist?).with(procfile_path).and_return(true)
+          allow(File).to receive(:read).with(procfile_path).and_return(procfile_content)
+        end
+
+        it "adds the command with proper newlines" do
+          cli.install
+
+          expect(File).to have_received(:write).with(
+            procfile_path,
+            "web: bin/rails server -p 3000\ntheme-builder: bundle exec theme-builder watch\n"
+          )
+        end
+      end
+    end
+  end
+
   describe ".source_root" do
     it "returns the correct source root path" do
       expected_path = File.expand_path("../..", __dir__)
