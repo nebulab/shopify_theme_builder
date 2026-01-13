@@ -25,6 +25,7 @@ RSpec/NestedGroups:
 Metrics/ClassLength:
   Exclude:
     - 'lib/shopify_theme_builder/liquid_processor.rb'
+    - 'lib/shopify_theme_builder/command_line.rb'
 
 Metrics/MethodLength:
   Exclude:
