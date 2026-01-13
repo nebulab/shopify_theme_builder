@@ -38,6 +38,7 @@ module ShopifyThemeBuilder
     def install
       add_tailwind_to_theme
       add_stimulus_to_theme
+      add_watcher_to_procfile
     end
 
     desc "generate", "Generate an example component structure"
@@ -173,6 +174,21 @@ module ShopifyThemeBuilder
         say_error "Error: Could not find a way to inject Stimulus JS. Please manually add the JS tag.",
                   :red
       end
+    end
+
+    def add_watcher_to_procfile
+      procfile_path = "Procfile.dev"
+      return unless File.exist?(procfile_path)
+
+      procfile_content = File.read(procfile_path)
+
+      if procfile_content.include?("theme-builder watch")
+        say "Watcher command already present in #{procfile_path}. Skipping addition.", :blue
+        return
+      end
+
+      File.write(procfile_path, "#{procfile_content.chomp}\ntheme-builder: bundle exec theme-builder watch\n")
+      say "Added watcher command to #{procfile_path}.", :green
     end
   end
 end

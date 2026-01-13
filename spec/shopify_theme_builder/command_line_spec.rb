@@ -404,6 +404,7 @@ RSpec.describe ShopifyThemeBuilder::CommandLine do
         allow(File).to receive(:exist?).with("snippets/stylesheets.liquid").and_return(false)
         allow(File).to receive(:exist?).with("snippets/scripts.liquid").and_return(false)
         allow(File).to receive(:exist?).with("layout/theme.liquid").and_return(true)
+        allow(File).to receive(:exist?).with("Procfile.dev").and_return(false)
         allow(File).to receive(:read).with(theme_file_path).and_return(theme_content.dup)
       end
 
@@ -465,6 +466,7 @@ RSpec.describe ShopifyThemeBuilder::CommandLine do
         allow(File).to receive(:exist?).with("snippets/stylesheets.liquid").and_return(true)
         allow(File).to receive(:exist?).with("snippets/scripts.liquid").and_return(false)
         allow(File).to receive(:exist?).with("layout/theme.liquid").and_return(true)
+        allow(File).to receive(:exist?).with("Procfile.dev").and_return(false)
         allow(File).to receive(:read).with(snippets_file_path).and_return(snippets_content.dup)
         allow(File).to receive(:read).with("layout/theme.liquid").and_return("<body></body>")
       end
@@ -537,6 +539,7 @@ RSpec.describe ShopifyThemeBuilder::CommandLine do
         allow(File).to receive(:exist?).with("snippets/stylesheets.liquid").and_return(false)
         allow(File).to receive(:exist?).with("snippets/scripts.liquid").and_return(false)
         allow(File).to receive(:exist?).with("layout/theme.liquid").and_return(true)
+        allow(File).to receive(:exist?).with("Procfile.dev").and_return(false)
         allow(File).to receive(:read).with("layout/theme.liquid").and_return(theme_content)
       end
 
@@ -561,6 +564,7 @@ RSpec.describe ShopifyThemeBuilder::CommandLine do
         allow(File).to receive(:exist?).with("snippets/stylesheets.liquid").and_return(false)
         allow(File).to receive(:exist?).with("snippets/scripts.liquid").and_return(false)
         allow(File).to receive(:exist?).with("layout/theme.liquid").and_return(false)
+        allow(File).to receive(:exist?).with("Procfile.dev").and_return(false)
       end
 
       it "shows error message" do
@@ -597,6 +601,7 @@ RSpec.describe ShopifyThemeBuilder::CommandLine do
         allow(File).to receive(:exist?).with("snippets/stylesheets.liquid").and_return(false)
         allow(File).to receive(:exist?).with("snippets/scripts.liquid").and_return(false)
         allow(File).to receive(:exist?).with("layout/theme.liquid").and_return(true)
+        allow(File).to receive(:exist?).with("Procfile.dev").and_return(false)
         allow(File).to receive(:read).with("layout/theme.liquid").and_return(theme_content)
       end
 
@@ -632,6 +637,7 @@ RSpec.describe ShopifyThemeBuilder::CommandLine do
         allow(File).to receive(:exist?).with("snippets/stylesheets.liquid").and_return(false)
         allow(File).to receive(:exist?).with("snippets/scripts.liquid").and_return(false)
         allow(File).to receive(:exist?).with("layout/theme.liquid").and_return(true)
+        allow(File).to receive(:exist?).with("Procfile.dev").and_return(false)
         allow(File).to receive(:read).with(theme_file_path).and_return(theme_content.dup)
       end
 
@@ -790,6 +796,147 @@ RSpec.describe ShopifyThemeBuilder::CommandLine do
           expect(cli).to have_received(:say_error).with(
             "Error: Could not find a way to inject Stimulus JS. Please manually add the JS tag.",
             :red
+          )
+        end
+      end
+    end
+
+    context "with Procfile.dev watcher integration" do
+      let(:procfile_path) { "Procfile.dev" }
+      let(:cli) { described_class.new }
+      let(:theme_file_path) { "layout/theme.liquid" }
+      let(:theme_content) do
+        <<~LIQUID
+          {{ 'application.css' | asset_url | stylesheet_tag }}
+          </head>
+          <body>
+            {{ content_for_layout }}
+          </body>
+        LIQUID
+      end
+
+      before do
+        allow(File).to receive(:exist?).and_call_original
+        allow(File).to receive(:exist?).with("snippets/stylesheets.liquid").and_return(false)
+        allow(File).to receive(:exist?).with("snippets/scripts.liquid").and_return(false)
+        allow(File).to receive(:exist?).with(theme_file_path).and_return(true)
+        allow(File).to receive(:read).with(theme_file_path).and_return(theme_content.dup)
+        allow(File).to receive(:write)
+        allow(cli).to receive(:say)
+        allow(cli).to receive(:say_error)
+      end
+
+      context "when Procfile.dev exists" do
+        let(:procfile_content) do
+          <<~PROCFILE
+            web: bin/rails server -p 3000
+            css: bin/rails tailwindcss:watch
+          PROCFILE
+        end
+
+        before do
+          allow(File).to receive(:exist?).with(procfile_path).and_return(true)
+          allow(File).to receive(:read).with(procfile_path).and_return(procfile_content)
+        end
+
+        it "adds the theme-builder watcher command to Procfile.dev" do
+          cli.install
+
+          expect(File).to have_received(:write).with(
+            procfile_path,
+            a_string_ending_with("theme-builder: bundle exec theme-builder watch\n")
+          )
+        end
+
+        it "shows success message" do
+          cli.install
+
+          expect(cli).to have_received(:say).with(
+            "Added watcher command to #{procfile_path}.",
+            :green
+          )
+        end
+
+        it "appends the command after existing content" do
+          cli.install
+
+          expect(File).to have_received(:write).with(
+            procfile_path,
+            a_string_matching(%r{css: bin/rails tailwindcss:watch\ntheme-builder: bundle exec theme-builder watch\n\z})
+          )
+        end
+      end
+
+      context "when Procfile.dev does not exist" do
+        before do
+          allow(File).to receive(:exist?).with(procfile_path).and_return(false)
+        end
+
+        it "does not attempt to write to Procfile.dev" do
+          cli.install
+
+          expect(File).not_to have_received(:write).with(
+            procfile_path,
+            anything
+          )
+        end
+
+        it "does not show any message about Procfile.dev" do
+          cli.install
+
+          expect(cli).not_to have_received(:say).with(
+            a_string_matching(/Procfile/),
+            anything
+          )
+        end
+      end
+
+      context "when watcher command already exists in Procfile.dev" do
+        let(:procfile_content) do
+          <<~PROCFILE
+            web: bin/rails server -p 3000
+            theme-builder: bundle exec theme-builder watch
+          PROCFILE
+        end
+
+        before do
+          allow(File).to receive(:exist?).with(procfile_path).and_return(true)
+          allow(File).to receive(:read).with(procfile_path).and_return(procfile_content)
+        end
+
+        it "skips adding the watcher command" do
+          cli.install
+
+          expect(File).not_to have_received(:write).with(
+            procfile_path,
+            anything
+          )
+        end
+
+        it "shows skip message" do
+          cli.install
+
+          expect(cli).to have_received(:say).with(
+            "Watcher command already present in #{procfile_path}. Skipping addition.",
+            :blue
+          )
+        end
+      end
+
+      context "when Procfile.dev has no trailing newline" do
+        let(:procfile_content) { "web: bin/rails server -p 3000" }
+
+        before do
+          allow(File).to receive(:exist?).with(procfile_path).and_return(true)
+          allow(File).to receive(:read).with(procfile_path).and_return(procfile_content)
+        end
+
+        it "adds the command with proper newlines" do
+          cli.install
+
+          expect(File).to have_received(:write).with(
+            procfile_path,
+            "web: bin/rails server -p 3000\ntheme-builder: bundle exec theme-builder watch\n"
           )
         end
       end
