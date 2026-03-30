@@ -27,7 +27,7 @@ jobs:
       - name: Run the default task
         run: bundle exec rake
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           flags: ruby-${{ matrix.ruby }}
         env:
